@@ -7,9 +7,15 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'article', 'price_wholesale', 'price_retail', 'minimum_order_quantity', 'delivery_time', 'city', 'photo']
 
 class CategorySerializer(serializers.ModelSerializer):
+    parent_category = serializers.SerializerMethodField()
+
     class Meta:
         model = Category
         fields = ['id', 'name', 'parent_category']
+
+    def get_parent_category(self, obj):
+        child_categories = Category.objects.filter(parent_category=obj)
+        return CategorySerializer(child_categories, many=True).data if child_categories else []
 
 class CartItemSerializer(serializers.ModelSerializer):
     product = ProductSerializer()
