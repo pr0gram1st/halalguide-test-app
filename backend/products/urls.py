@@ -1,18 +1,22 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from . import views
+from .views import (
+    CategoryViewSet, SupplierViewSet, ProductViewSet, SupplierPriceViewSet,
+    BannerViewSet, OrderItemViewSet, OrderViewSet, CartViewSet, FavoriteViewSet
+)
 
+# Router for all endpoints
 router = DefaultRouter()
-router.register(r'products', views.ProductViewSet)
-router.register(r'categories', views.CategoryViewSet)
-router.register(r'supplier-statistics', views.SupplierStatisticsViewSet)
+router.register(r'categories', CategoryViewSet)
+router.register(r'suppliers', SupplierViewSet)
+router.register(r'products', ProductViewSet)
+router.register(r'supplier-prices', SupplierPriceViewSet)
+router.register(r'banners', BannerViewSet)
+router.register(r'order-items', OrderItemViewSet)
+router.register(r'orders', OrderViewSet)
+router.register(r'cart', CartViewSet, basename='cart')
+router.register(r'favorites', FavoriteViewSet, basename='favorites')
 
 urlpatterns = [
-    path('api/', include(router.urls)),
-    path('api/cart/', views.cart_detail, name='cart-detail'),
-    path('api/cart/update/<int:cart_item_id>/', views.update_cart_item, name='update-cart-item'),
-    path('api/cart/delete/<int:cart_item_id>/', views.delete_cart_item, name='delete-cart-item'),
-    path('api/order/create/', views.create_order, name='create-order'),
-    path('api/favorites/', views.get_favorites, name='get-favorites'),
-    path('api/favorites/add-remove/', views.add_remove_favorite, name='add-remove-favorite'),
+    path('', include(router.urls)),
 ]

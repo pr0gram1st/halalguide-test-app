@@ -1,95 +1,111 @@
-from rest_framework import viewsets, status
+from .models import Category, Supplier, Product, SupplierPrice, Banner, OrderItem, Order
+from .serializers import (
+    CategorySerializer, SupplierSerializer, ProductSerializer,
+    SupplierPriceSerializer, BannerSerializer, OrderItemSerializer, OrderSerializer
+)
+
+from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
-from django.contrib.auth.models import User
-from .models import Product, Cart, CartItem, Order, OrderItem, Favorite, Supplier, SupplierStatistics, Category
-from .serializers import ProductSerializer, CartSerializer, OrderSerializer, FavoriteSerializer, \
-    SupplierStatisticsSerializer, CategorySerializer
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from .models import Cart, CartItem, Favorite
+from .serializers import CartSerializer, CartItemSerializer, FavoriteSerializer
 
-
-class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.all()
-    serializer_class = ProductSerializer
-
-
-class CategoryViewSet(viewsets.ModelViewSet):
+class CategoryViewSet(ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
 
-@api_view(['GET', 'POST'])
-def cart_detail(request):
-    user = request.user
-    if request.method == 'GET':
-        cart, created = Cart.objects.get_or_create(user=user, is_active=True)
-        serializer = CartSerializer(cart)
-        return Response(serializer.data)
-    elif request.method == 'POST':
-        cart, created = Cart.objects.get_or_create(user=user, is_active=True)
-        product = Product.objects.get(id=request.data['product_id'])
-        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
-        cart_item.quantity += request.data['quantity']
+class SupplierViewSet(ModelViewSet):
+    queryset = Supplier.objects.all()
+    serializer_class = SupplierSerializer
+
+
+class ProductViewSet(ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+
+
+class SupplierPriceViewSet(ModelViewSet):
+    queryset = SupplierPrice.objects.all()
+    serializer_class = SupplierPriceSerializer
+
+
+class BannerViewSet(ModelViewSet):
+    queryset = Banner.objects.all()
+    serializer_class = BannerSerializer
+
+
+class OrderItemViewSet(ModelViewSet):
+    queryset = OrderItem.objects.all()
+    serializer_class = OrderItemSerializer
+
+
+class OrderViewSet(ModelViewSet):
+    queryset = Order.objects.all()
+    serializer_class = OrderSerializer
+
+
+
+
+class CartViewSet(ModelViewSet):
+    serializer_class = CartSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Cart.objects.filter(user=self.request.user)
+
+    @action(detail=False, methods=["post"])
+    def add_to_cart(self, request):
+        user = request.user
+        product_id = request.data.get("product_id")
+        quantity = request.data.get("quantity", 1)
+
+        cart, _ = Cart.objects.get_or_create(user=user)
+        cart_item, created = CartItem.objects.get_or_create(cart=cart, product_id=product_id)
+        if not created:
+            cart_item.quantity += int(quantity)
         cart_item.save()
-        return Response({'status': 'Cart updated'}, status=status.HTTP_200_OK)
+
+        return Response({"message": "Item added to cart."})
+
+    @action(detail=False, methods=["post"])
+    def remove_from_cart(self, request):
+        user = request.user
+        product_id = request.data.get("product_id")
+
+        cart = Cart.objects.filter(user=user).first()
+        if cart:
+            cart_item = CartItem.objects.filter(cart=cart, product_id=product_id).first()
+            if cart_item:
+                cart_item.delete()
+                return Response({"message": "Item removed from cart."})
+        return Response({"error": "Item not found in cart."}, status=404)
 
 
-@api_view(['POST'])
-def update_cart_item(request, cart_item_id):
-    cart_item = CartItem.objects.get(id=cart_item_id)
-    cart_item.quantity = request.data['quantity']
-    cart_item.save()
-    return Response({'status': 'Cart item updated'}, status=status.HTTP_200_OK)
+class FavoriteViewSet(ModelViewSet):
+    serializer_class = FavoriteSerializer
+    permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        return Favorite.objects.filter(user=self.request.user)
 
-@api_view(['POST'])
-def delete_cart_item(request, cart_item_id):
-    cart_item = CartItem.objects.get(id=cart_item_id)
-    cart_item.delete()
-    return Response({'status': 'Cart item deleted'}, status=status.HTTP_200_OK)
+    @action(detail=False, methods=["post"])
+    def add_to_favorites(self, request):
+        user = request.user
+        product_id = request.data.get("product_id")
 
+        Favorite.objects.get_or_create(user=user, product_id=product_id)
+        return Response({"message": "Item added to favorites."})
 
-# Order API Views
-@api_view(['POST'])
-def create_order(request):
-    user = request.user
-    cart = Cart.objects.get(user=user, is_active=True)
-    total_amount = sum([item.product.price_retail * item.quantity for item in cart.items.all()])
-    order = Order.objects.create(user=user, total_amount=total_amount, status='in_progress')
+    @action(detail=False, methods=["post"])
+    def remove_from_favorites(self, request):
+        user = request.user
+        product_id = request.data.get("product_id")
 
-    for cart_item in cart.items.all():
-        OrderItem.objects.create(order=order, product=cart_item.product, quantity=cart_item.quantity,
-                                 price=cart_item.product.price_retail)
-
-    cart.is_active = False
-    cart.save()
-
-    return Response({'status': 'Order created', 'order_id': order.id}, status=status.HTTP_201_CREATED)
-
-
-# Favorite API Views
-@api_view(['POST', 'DELETE'])
-def add_remove_favorite(request):
-    user = request.user
-    product = Product.objects.get(id=request.data['product_id'])
-    if request.method == 'POST':
-        Favorite.objects.get_or_create(user=user, product=product)
-        return Response({'status': 'Product added to favorites'}, status=status.HTTP_200_OK)
-    elif request.method == 'DELETE':
-        favorite = Favorite.objects.get(user=user, product=product)
-        favorite.delete()
-        return Response({'status': 'Product removed from favorites'}, status=status.HTTP_200_OK)
-
-
-@api_view(['GET'])
-def get_favorites(request):
-    user = request.user
-    favorites = Favorite.objects.filter(user=user)
-    serializer = FavoriteSerializer(favorites, many=True)
-    return Response(serializer.data)
-
-
-# Supplier Statistics API View
-class SupplierStatisticsViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = SupplierStatistics.objects.all()
-    serializer_class = SupplierStatisticsSerializer
+        favorite = Favorite.objects.filter(user=user, product_id=product_id).first()
+        if favorite:
+            favorite.delete()
+            return Response({"message": "Item removed from favorites."})
+        return Response({"error": "Item not found in favorites."}, status=404)
 

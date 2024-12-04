@@ -1,97 +1,165 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.timezone import localtime, now
 
+# Category Model
 class Category(models.Model):
     name = models.CharField(max_length=255)
-    parent_category = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL)
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='children'
+    )
+    logo = models.ImageField(upload_to='category_logos/', null=True, blank=True)  # Added logo field
 
     def __str__(self):
         return self.name
 
+# Supplier Model
 class Supplier(models.Model):
     name = models.CharField(max_length=255)
     logo = models.ImageField(upload_to='supplier_logos/')
-    rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
+    rating = models.FloatField()
+    is_favourite = models.BooleanField(default=False)
+    city = models.CharField(max_length=255)
+    categories = models.ManyToManyField(Category, related_name='suppliers')
+    contact_number = models.CharField(max_length=15)
 
     def __str__(self):
         return self.name
 
+# Product Model
 class Product(models.Model):
-    supplier = models.ForeignKey(Supplier, related_name="products", on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
-    description = models.TextField()
+    article = models.CharField(max_length=100)
     price_wholesale = models.DecimalField(max_digits=10, decimal_places=2)
     price_retail = models.DecimalField(max_digits=10, decimal_places=2)
-    minimum_order_quantity = models.PositiveIntegerField()
-    delivery_time = models.CharField(max_length=100)
-    city = models.CharField(max_length=100)
+    min_order_quantity = models.PositiveIntegerField()
+    delivery_time = models.CharField(max_length=255)
+    city = models.CharField(max_length=255)
+    description = models.TextField()
+    characteristics = models.JSONField()
     photo = models.ImageField(upload_to='product_photos/')
-    article = models.CharField(max_length=50, unique=True)
-    category = models.ForeignKey(Category, related_name="products", on_delete=models.SET_NULL, null=True)
+    suppliers = models.ManyToManyField(
+        Supplier,
+        through='SupplierPrice',
+        related_name='products'
+    )
 
     def __str__(self):
         return self.name
 
-class Cart(models.Model):
-    user = models.ForeignKey(User, related_name="carts", on_delete=models.CASCADE)
-    is_active = models.BooleanField(default=True)
+# SupplierPrice Model
+class SupplierPrice(models.Model):
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    delivery_time = models.CharField(max_length=255)
 
     def __str__(self):
-        return f"Cart {self.id} - {self.user.username}"
+        return f"{self.supplier.name} - {self.product.name}"
+
+# Banner Model
+class Banner(models.Model):
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
+    supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True)
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
+    photo = models.ImageField(upload_to='banners/')
+
+    def __str__(self):
+        return f"Banner for {self.category or self.supplier or self.product}"
+
+# OrderItem Model
+class OrderItem(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField()
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
+    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    delivery_address = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product.name} from {self.supplier.name}"
+
+# Order Model
+class Order(models.Model):
+    PAYMENT_METHODS = [
+        ('cash', 'Cash'),
+        ('non-cash', 'Non-Cash'),
+        ('online', 'Online')
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('delivering', 'Delivering'),
+        ('completed', 'Completed')
+    ]
+
+    user_id = models.CharField(max_length=100)  # Replace with ForeignKey(User) for user relations
+    items = models.ManyToManyField(OrderItem, related_name='orders')
+    delivery_date = models.DateTimeField()
+    delivery_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS)
+    comment = models.TextField(null=True, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Order #{self.id} - {self.status}"
+
+class Cart(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Cart for {self.user.username} (Last updated: {localtime(self.updated_at)})"
+
 
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, related_name="items", on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, related_name="cart_items", on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField()
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
 
     def __str__(self):
-        return f"{self.product.name} x {self.quantity}"
+        return f"{self.quantity} x {self.product.name} in {self.cart.user.username}'s cart"
+
 
 class Favorite(models.Model):
     user = models.ForeignKey(User, related_name="favorites", on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, related_name="favorites", on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, related_name="favorited_by", on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.product.name} (Favorite)"
-
-class Order(models.Model):
-    user = models.ForeignKey(User, related_name="orders", on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
-    status_choices = [
-        ('in_progress', 'In Progress'),
-        ('completed', 'Completed'),
-        ('shipped', 'Shipped')
-    ]
-    status = models.CharField(max_length=20, choices=status_choices, default='in_progress')
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
-
-    def __str__(self):
-        return f"Order {self.id} - {self.user.username}"
-
-class OrderItem(models.Model):
-    order = models.ForeignKey(Order, related_name="items", on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, related_name="order_items", on_delete=models.CASCADE)
-    quantity = models.PositiveIntegerField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-
-    def __str__(self):
-        return f"{self.product.name} x {self.quantity}"
+        return f"{self.product.name} favorited by {self.user.username}"
 
 class Delivery(models.Model):
-    order = models.ForeignKey(Order, related_name="delivery", on_delete=models.CASCADE)
-    address = models.CharField(max_length=255)
-    delivery_date = models.DateTimeField()
-    delivery_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('IN_TRANSIT', 'In Transit'),
+        ('DELIVERED', 'Delivered'),
+        ('CANCELLED', 'Cancelled'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="deliveries")
+    address = models.TextField()
+    contact_number = models.CharField(max_length=15)
+    delivery_date = models.DateField(default=now)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Delivery for Order {self.order.id}"
+        return f"Delivery for {self.user.username} on {self.delivery_date} ({self.get_status_display()})"
+
 
 class SupplierStatistics(models.Model):
-    supplier = models.ForeignKey(Supplier, related_name="statistics", on_delete=models.CASCADE)
-    total_orders = models.PositiveIntegerField(default=0)
-    total_items = models.PositiveIntegerField(default=0)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
+    supplier = models.CharField(max_length=255)
+    product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name="supplier_statistics")
+    total_supplied = models.PositiveIntegerField(default=0)
+    average_rating = models.FloatField(default=0.0)
+    last_supply_date = models.DateField(null=True, blank=True)
 
     def __str__(self):
-        return f"Statistics for {self.supplier.name}"
-
+        return f"Statistics for {self.supplier} (Product: {self.product.name})"

@@ -1,54 +1,108 @@
 from rest_framework import serializers
-from .models import Product, Cart, CartItem, Order, OrderItem, Favorite, Supplier, SupplierStatistics, Category
-
-class ProductSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Product
-        fields = ['id', 'name', 'article', 'price_wholesale', 'price_retail', 'minimum_order_quantity', 'delivery_time', 'city', 'photo']
+from .models import (
+    Category, Supplier, Product, SupplierPrice,
+    Banner, OrderItem, Order, Cart, CartItem, Favorite
+)
 
 class CategorySerializer(serializers.ModelSerializer):
-    parent_category = serializers.SerializerMethodField()
+    children = serializers.SerializerMethodField()
+    # parent = serializers.SerializerMethodField()
 
     class Meta:
         model = Category
-        fields = ['id', 'name', 'parent_category']
+        fields = ['id', 'name', 'logo', 'parent', 'children']
 
-    def get_parent_category(self, obj):
-        child_categories = Category.objects.filter(parent_category=obj)
-        return CategorySerializer(child_categories, many=True).data if child_categories else []
+    def get_children(self, obj):
+        children = obj.children.all()
+        return CategorySerializer(children, many=True).data if children.exists() else []
 
-class CartItemSerializer(serializers.ModelSerializer):
+    # def get_parent(self, obj):
+    #     if obj.parent:
+    #         return CategorySerializer(obj.parent).data
+    #     return None
+
+
+class SupplierSerializer(serializers.ModelSerializer):
+    categories = CategorySerializer(many=True)  # Nested categories
+
+    class Meta:
+        model = Supplier
+        fields = ['id', 'name', 'logo', 'rating', 'is_favourite', 'city', 'categories', 'contact_number']
+
+
+class SupplierPriceSerializer(serializers.ModelSerializer):
+    supplier = SupplierSerializer()  # Nested supplier data
+    product = serializers.PrimaryKeyRelatedField(read_only=True)  # Avoid circular dependency
+
+    class Meta:
+        model = SupplierPrice
+        fields = '__all__'
+
+
+class ProductSerializer(serializers.ModelSerializer):
+    suppliers = SupplierSerializer(many=True)  # Nested supplier data
+
+    class Meta:
+        model = Product
+        fields = '__all__'
+
+
+class BannerSerializer(serializers.ModelSerializer):
+    category = CategorySerializer()  # Nested category data
+    supplier = SupplierSerializer()
     product = ProductSerializer()
-    class Meta:
-        model = CartItem
-        fields = ['id', 'product', 'quantity']
 
-class CartSerializer(serializers.ModelSerializer):
-    items = CartItemSerializer(source='items.all', read_only=True)
     class Meta:
-        model = Cart
-        fields = ['id', 'user', 'is_active', 'items']
+        model = Banner
+        fields = '__all__'
+
 
 class OrderItemSerializer(serializers.ModelSerializer):
-    product = ProductSerializer()
+    product = ProductSerializer()  # Nested product data
+    supplier = SupplierSerializer()  # Nested supplier data
+
     class Meta:
         model = OrderItem
-        fields = ['id', 'product', 'quantity', 'price']
+        fields = '__all__'
+
 
 class OrderSerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(source='items.all', read_only=True)
+    items = OrderItemSerializer(many=True)  # Nested order items
+    user = serializers.StringRelatedField()  # Replace with `UserSerializer()` if you want nested user data
+
     class Meta:
         model = Order
-        fields = ['id', 'user', 'created_at', 'status', 'total_amount', 'items']
+        fields = '__all__'
+
+    def create(self, validated_data):
+        items_data = validated_data.pop('items')
+        order = Order.objects.create(**validated_data)
+        for item_data in items_data:
+            OrderItem.objects.create(order=order, **item_data)
+        return order
+
+
+class CartItemSerializer(serializers.ModelSerializer):
+    product = ProductSerializer()  # Nested product data
+
+    class Meta:
+        model = CartItem
+        fields = '__all__'
+
+
+class CartSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField()  # Replace with `UserSerializer()` for nested user data
+    items = CartItemSerializer(many=True, read_only=True)  # Nested cart items
+
+    class Meta:
+        model = Cart
+        fields = '__all__'
+
 
 class FavoriteSerializer(serializers.ModelSerializer):
-    product = ProductSerializer()
+    user = serializers.StringRelatedField()  # Replace with `UserSerializer()` for nested user data
+    product = ProductSerializer()  # Nested product data
+
     class Meta:
         model = Favorite
-        fields = ['id', 'user', 'product']
-
-class SupplierStatisticsSerializer(serializers.ModelSerializer):
-    supplier = serializers.StringRelatedField()
-    class Meta:
-        model = SupplierStatistics
-        fields = ['supplier', 'total_orders', 'total_items', 'total_amount']
+        fields = '__all__'
