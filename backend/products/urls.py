@@ -2,12 +2,13 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     CategoryViewSet, SupplierViewSet, ProductViewSet, SupplierPriceViewSet,
-    BannerViewSet, OrderItemViewSet, OrderViewSet, CartViewSet, FavoriteViewSet
+    BannerViewSet, OrderItemViewSet, OrderViewSet, CartViewSet, FavoriteViewSet, ParentCategoryViewSet
 )
 
 # Router for all endpoints
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet)
+router.register(r'parent-categories', ParentCategoryViewSet, basename='parent-categories')
 router.register(r'suppliers', SupplierViewSet)
 router.register(r'products', ProductViewSet)
 router.register(r'supplier-prices', SupplierPriceViewSet)

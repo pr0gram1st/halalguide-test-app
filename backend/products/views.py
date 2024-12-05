@@ -10,6 +10,12 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from .models import Cart, CartItem, Favorite
 from .serializers import CartSerializer, CartItemSerializer, FavoriteSerializer
+from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework.response import Response
+
+class ParentCategoryViewSet(ReadOnlyModelViewSet):
+    queryset = Category.objects.filter(parent__isnull=True)
+    serializer_class = CategorySerializer
 
 class CategoryViewSet(ModelViewSet):
     queryset = Category.objects.all()

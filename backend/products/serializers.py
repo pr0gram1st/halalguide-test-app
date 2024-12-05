@@ -6,7 +6,6 @@ from .models import (
 
 class CategorySerializer(serializers.ModelSerializer):
     children = serializers.SerializerMethodField()
-    # parent = serializers.SerializerMethodField()
 
     class Meta:
         model = Category
@@ -15,12 +14,6 @@ class CategorySerializer(serializers.ModelSerializer):
     def get_children(self, obj):
         children = obj.children.all()
         return CategorySerializer(children, many=True).data if children.exists() else []
-
-    # def get_parent(self, obj):
-    #     if obj.parent:
-    #         return CategorySerializer(obj.parent).data
-    #     return None
-
 
 class SupplierSerializer(serializers.ModelSerializer):
     categories = CategorySerializer(many=True)  # Nested categories
