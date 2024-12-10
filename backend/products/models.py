@@ -2,7 +2,6 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.timezone import localtime, now
 
-# Category Model
 class Category(models.Model):
     name = models.CharField(max_length=255)
     parent = models.ForeignKey(
@@ -17,7 +16,6 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
-# Supplier Model
 class Supplier(models.Model):
     name = models.CharField(max_length=255)
     logo = models.ImageField(upload_to='supplier_logos/')
@@ -30,7 +28,6 @@ class Supplier(models.Model):
     def __str__(self):
         return self.name
 
-# Product Model
 class Product(models.Model):
     name = models.CharField(max_length=255)
     article = models.CharField(max_length=100)
@@ -51,7 +48,6 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
-# SupplierPrice Model
 class SupplierPrice(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -61,7 +57,6 @@ class SupplierPrice(models.Model):
     def __str__(self):
         return f"{self.supplier.name} - {self.product.name}"
 
-# Banner Model
 class Banner(models.Model):
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True)
@@ -71,7 +66,6 @@ class Banner(models.Model):
     def __str__(self):
         return f"Banner for {self.category or self.supplier or self.product}"
 
-# OrderItem Model
 class OrderItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE)
@@ -83,7 +77,6 @@ class OrderItem(models.Model):
     def __str__(self):
         return f"{self.quantity} x {self.product.name} from {self.supplier.name}"
 
-# Order Model
 class Order(models.Model):
     PAYMENT_METHODS = [
         ('cash', 'Cash'),

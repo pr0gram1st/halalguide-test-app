@@ -4,7 +4,6 @@ from .models import (
     OrderItem, Order, Cart, CartItem, Favorite, Delivery, SupplierStatistics
 )
 
-# Inline classes for better admin integration
 class SupplierPriceInline(admin.TabularInline):
     model = SupplierPrice
     extra = 1
@@ -15,20 +14,18 @@ class CartItemInline(admin.TabularInline):
     extra = 1
 
 
-# Custom display for OrderItems within Order
 class OrderItemInline(admin.TabularInline):
-    model = Order.items.through  # Access the through model for ManyToMany
+    model = Order.items.through
     extra = 1
 
 
-# Admin classes for each model
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('id', 'user_id', 'total_cost', 'status', 'delivery_date', 'payment_method')
     search_fields = ('user_id', 'status')
     list_filter = ('status', 'payment_method', 'delivery_date')
     ordering = ('-timestamp',)
-    inlines = [OrderItemInline]  # Updated to use the correct through model
+    inlines = [OrderItemInline]
 
 
 @admin.register(OrderItem)
@@ -92,6 +89,5 @@ class SupplierStatisticsAdmin(admin.ModelAdmin):
     list_display = ('supplier', 'product', 'total_supplied', 'average_rating', 'last_supply_date')
 
 
-# Optional: Registering models without custom admin classes
 admin.site.register(CartItem)
 admin.site.register(SupplierPrice)

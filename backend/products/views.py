@@ -4,13 +4,11 @@ from .serializers import (
     SupplierPriceSerializer, BannerSerializer, OrderItemSerializer, OrderSerializer, SupplierByCategorySerializer, ProductsBySupplierSerializer
 )
 from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Q, Count, Min
 from django.db import models
 
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from .models import Cart, CartItem, Favorite
@@ -127,7 +125,6 @@ class SuppliersByCategoryView(APIView):
         if not category_id:
             return Response({'error': 'category_id parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Filter suppliers by the category and annotate product count and delivery time
         suppliers = Supplier.objects.filter(categories__id=category_id).annotate(
             product_count=Count('products', filter=Q(products__suppliers__categories__id=category_id)),
             min_delivery_time=Min('products__supplierprice__delivery_time', filter=Q(products__suppliers__categories__id=category_id))

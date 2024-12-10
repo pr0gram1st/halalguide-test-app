@@ -20,16 +20,20 @@ class CategorySerializer(serializers.ModelSerializer):
         return obj.suppliers.count()
 
 class SupplierSerializer(serializers.ModelSerializer):
-    categories = CategorySerializer(many=True)  # Nested categories
+    categories = serializers.SerializerMethodField()
 
     class Meta:
         model = Supplier
         fields = ['id', 'name', 'logo', 'rating', 'is_favourite', 'city', 'categories', 'contact_number']
 
+    def get_categories(self, obj):
+        parent_categories = obj.categories.filter(parent__isnull=True)
+        return CategorySerializer(parent_categories, many=True).data
+
 
 class SupplierPriceSerializer(serializers.ModelSerializer):
-    supplier = SupplierSerializer()  # Nested supplier data
-    product = serializers.PrimaryKeyRelatedField(read_only=True)  # Avoid circular dependency
+    supplier = SupplierSerializer()
+    product = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = SupplierPrice
