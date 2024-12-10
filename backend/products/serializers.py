@@ -103,3 +103,20 @@ class FavoriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorite
         fields = '__all__'
+
+
+class SupplierByCategorySerializer(serializers.ModelSerializer):
+    product_count = serializers.IntegerField()  # Annotated field
+    min_delivery_time = serializers.CharField()  # Annotated field
+    logo = serializers.SerializerMethodField()  # For full URL
+
+    class Meta:
+        model = Supplier
+        fields = ['id', 'name', 'city', 'logo', 'product_count', 'min_delivery_time']
+
+    def get_logo(self, obj):
+        request = self.context.get('request')
+        if obj.logo and request:
+            return request.build_absolute_uri(obj.logo.url)
+        return None
+

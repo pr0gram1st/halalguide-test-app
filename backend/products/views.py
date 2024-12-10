@@ -1,7 +1,7 @@
 from .models import Category, Supplier, Product, SupplierPrice, Banner, OrderItem, Order
 from .serializers import (
     CategorySerializer, SupplierSerializer, ProductSerializer,
-    SupplierPriceSerializer, BannerSerializer, OrderItemSerializer, OrderSerializer
+    SupplierPriceSerializer, BannerSerializer, OrderItemSerializer, OrderSerializer, SupplierByCategorySerializer
 )
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -121,25 +121,22 @@ class FavoriteViewSet(ModelViewSet):
         return Response({"error": "Item not found in favorites."}, status=404)
 
 
-
 class SuppliersByCategoryView(APIView):
     def get(self, request):
         category_id = request.query_params.get('category_id')
         if not category_id:
             return Response({'error': 'category_id parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Query suppliers filtered by category and annotate with product count and minimum delivery time
         suppliers = Supplier.objects.filter(categories__id=category_id).annotate(
             product_count=models.Count('products'),
             min_delivery_time=models.Min('products__supplierprice__delivery_time')
-        ).values(
-            'id', 'name', 'city', 'logo', 'product_count', 'min_delivery_time'
         )
 
-        for supplier in suppliers:
-            if supplier['logo']:
-                supplier['logo'] = request.build_absolute_uri(supplier['logo'])
+        # Serialize the data with context for absolute URI
+        serializer = SupplierByCategorySerializer(suppliers, many=True, context={'request': request})
 
-        return Response(suppliers, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class ProductsBySupplierView(APIView):
