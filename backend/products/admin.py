@@ -40,14 +40,14 @@ class OrderItemAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'parent')
+    list_display = ('id','name', 'parent')
     search_fields = ('name',)
     list_filter = ('parent',)
 
 
 @admin.register(Supplier)
 class SupplierAdmin(admin.ModelAdmin):
-    list_display = ('name', 'city', 'rating', 'is_favourite')
+    list_display = ('id', 'name', 'city', 'rating', 'is_favourite')
     search_fields = ('name', 'city')
     list_filter = ('city', 'rating', 'is_favourite')
 

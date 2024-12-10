@@ -106,9 +106,9 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
 
 class SupplierByCategorySerializer(serializers.ModelSerializer):
-    product_count = serializers.IntegerField()  # Annotated field
-    min_delivery_time = serializers.CharField()  # Annotated field
-    logo = serializers.SerializerMethodField()  # For full URL
+    product_count = serializers.IntegerField()
+    min_delivery_time = serializers.CharField()
+    logo = serializers.SerializerMethodField()
 
     class Meta:
         model = Supplier
@@ -120,3 +120,17 @@ class SupplierByCategorySerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.logo.url)
         return None
 
+class ProductsBySupplierSerializer(serializers.ModelSerializer):
+    min_delivery_time = serializers.CharField()
+    min_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    photo = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'article', 'photo', 'min_delivery_time', 'min_price']
+
+    def get_photo(self, obj):
+        request = self.context.get('request')
+        if obj.photo and request:
+            return request.build_absolute_uri(obj.photo.url)
+        return None

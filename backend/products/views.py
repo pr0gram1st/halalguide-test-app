@@ -1,12 +1,12 @@
 from .models import Category, Supplier, Product, SupplierPrice, Banner, OrderItem, Order
 from .serializers import (
     CategorySerializer, SupplierSerializer, ProductSerializer,
-    SupplierPriceSerializer, BannerSerializer, OrderItemSerializer, OrderSerializer, SupplierByCategorySerializer
+    SupplierPriceSerializer, BannerSerializer, OrderItemSerializer, OrderSerializer, SupplierByCategorySerializer, ProductsBySupplierSerializer
 )
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.db.models import Min
+from django.db.models import Q, Count, Min
 from django.db import models
 
 from rest_framework.viewsets import ModelViewSet
@@ -127,16 +127,15 @@ class SuppliersByCategoryView(APIView):
         if not category_id:
             return Response({'error': 'category_id parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Query suppliers filtered by category and annotate with product count and minimum delivery time
+        # Filter suppliers by the category and annotate product count and delivery time
         suppliers = Supplier.objects.filter(categories__id=category_id).annotate(
-            product_count=models.Count('products'),
-            min_delivery_time=models.Min('products__supplierprice__delivery_time')
+            product_count=Count('products', filter=Q(products__suppliers__categories__id=category_id)),
+            min_delivery_time=Min('products__supplierprice__delivery_time', filter=Q(products__suppliers__categories__id=category_id))
         )
 
-        # Serialize the data with context for absolute URI
         serializer = SupplierByCategorySerializer(suppliers, many=True, context={'request': request})
-
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 class ProductsBySupplierView(APIView):
@@ -144,8 +143,9 @@ class ProductsBySupplierView(APIView):
         products = Product.objects.filter(suppliers__id=supplier_id).annotate(
             min_delivery_time=models.Min('supplierprice__delivery_time'),
             min_price=models.Min('supplierprice__price')
-        ).values(
-            'id', 'name', 'article', 'photo', 'min_delivery_time', 'min_price'
         )
 
-        return Response(products, status=status.HTTP_200_OK)
+        serializer = ProductsBySupplierSerializer(products, many=True, context={'request': request})
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
