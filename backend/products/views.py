@@ -132,7 +132,7 @@ class SuppliersByCategoryView(APIView):
             product_count=models.Count('products'),
             min_delivery_time=models.Min('products__supplierprice__delivery_time')
         ).values(
-            'id', 'name', 'city', 'product_count', 'min_delivery_time'
+            'id', 'name', 'city', 'logo', 'product_count', 'min_delivery_time'
         )
 
         return Response(suppliers, status=status.HTTP_200_OK)
