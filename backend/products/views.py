@@ -135,7 +135,12 @@ class SuppliersByCategoryView(APIView):
             'id', 'name', 'city', 'logo', 'product_count', 'min_delivery_time'
         )
 
+        for supplier in suppliers:
+            if supplier['logo']:
+                supplier['logo'] = request.build_absolute_uri(supplier['logo'])
+
         return Response(suppliers, status=status.HTTP_200_OK)
+
 
 class ProductsBySupplierView(APIView):
     def get(self, request, supplier_id):
