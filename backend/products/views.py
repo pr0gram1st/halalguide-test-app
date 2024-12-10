@@ -3,6 +3,11 @@ from .serializers import (
     CategorySerializer, SupplierSerializer, ProductSerializer,
     SupplierPriceSerializer, BannerSerializer, OrderItemSerializer, OrderSerializer
 )
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.db.models import Min
+from django.db import models
 
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.response import Response
@@ -115,3 +120,30 @@ class FavoriteViewSet(ModelViewSet):
             return Response({"message": "Item removed from favorites."})
         return Response({"error": "Item not found in favorites."}, status=404)
 
+
+
+class SuppliersByCategoryView(APIView):
+    def get(self, request):
+        category_id = request.query_params.get('category_id')
+        if not category_id:
+            return Response({'error': 'category_id parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        suppliers = Supplier.objects.filter(categories__id=category_id).annotate(
+            product_count=models.Count('products'),
+            min_delivery_time=models.Min('products__supplierprice__delivery_time')
+        ).values(
+            'id', 'name', 'city', 'product_count', 'min_delivery_time'
+        )
+
+        return Response(suppliers, status=status.HTTP_200_OK)
+
+class ProductsBySupplierView(APIView):
+    def get(self, request, supplier_id):
+        products = Product.objects.filter(suppliers__id=supplier_id).annotate(
+            min_delivery_time=models.Min('supplierprice__delivery_time'),
+            min_price=models.Min('supplierprice__price')
+        ).values(
+            'id', 'name', 'article', 'photo', 'min_delivery_time', 'min_price'
+        )
+
+        return Response(products, status=status.HTTP_200_OK)
