@@ -66,9 +66,10 @@ class Banner(models.Model):
     def __str__(self):
         return f"Banner for {self.category or self.supplier or self.product}"
 
+
 class OrderItem(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='order_items')
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='order_items')
     quantity = models.PositiveIntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
@@ -90,18 +91,19 @@ class Order(models.Model):
         ('completed', 'Completed')
     ]
 
-    user_id = models.CharField(max_length=100)  # Replace with ForeignKey(User) for user relations
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', null=True)
     items = models.ManyToManyField(OrderItem, related_name='orders')
     delivery_date = models.DateTimeField()
     delivery_cost = models.DecimalField(max_digits=10, decimal_places=2)
     total_cost = models.DecimalField(max_digits=10, decimal_places=2)
     payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS)
     comment = models.TextField(null=True, blank=True)
+    supplier_details = models.ManyToManyField(Supplier, related_name='orders')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Order #{self.id} - {self.status}"
+        return f"Order by {self.user.username} - {self.status}"
 
 class Cart(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
