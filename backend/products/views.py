@@ -139,7 +139,7 @@ class FavoriteViewSet(ModelViewSet):
 
             favorite.delete()
             product = Product.objects.get(id=product_id)
-            product.is_favorited = False
+            product.is_favorite = False
             product.save()
 
             return Response({"message": "Item removed from favorites."})
