@@ -1,8 +1,9 @@
 from django.contrib import admin
 from .models import (
     Category, Supplier, Product, SupplierPrice, Banner,
-    OrderItem, Order, Cart, CartItem, Favorite, Delivery, SupplierStatistics
+    OrderItem, Order, Cart, CartItem, Favorite, Delivery, SupplierStatistics, Application
 )
+# from .forms import ProductAdminForm
 
 class SupplierPriceInline(admin.TabularInline):
     model = SupplierPrice
@@ -30,9 +31,8 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
-    list_display = ('product', 'supplier', 'quantity', 'unit_price', 'total_price')
-    search_fields = ('product__name', 'supplier__name')
-    list_filter = ('supplier',)
+    list_display = ('product', 'quantity', 'unit_price', 'total_price')
+    search_fields = ('product__name',)
 
 
 @admin.register(Category)
@@ -51,6 +51,7 @@ class SupplierAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
+    # form = ProductAdminForm
     list_display = ('name', 'article', 'price_retail', 'city', 'min_order_quantity')
     search_fields = ('name', 'article')
     list_filter = ('city', 'price_retail')
@@ -91,3 +92,4 @@ class SupplierStatisticsAdmin(admin.ModelAdmin):
 
 admin.site.register(CartItem)
 admin.site.register(SupplierPrice)
+admin.site.register(Application)

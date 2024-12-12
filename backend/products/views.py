@@ -1,7 +1,8 @@
-from .models import Category, Supplier, Product, SupplierPrice, Banner, OrderItem, Order
+from .models import Category, Supplier, Product, SupplierPrice, Banner, OrderItem, Order, Application
 from .serializers import (
     CategorySerializer, SupplierSerializer, ProductSerializer,
-    SupplierPriceSerializer, BannerSerializer, OrderItemSerializer, OrderSerializer, SupplierByCategorySerializer, ProductsBySupplierSerializer
+    SupplierPriceSerializer, BannerSerializer, OrderItemSerializer, OrderSerializer, SupplierByCategorySerializer, ProductsBySupplierSerializer,
+    ApplicationSerializer
 )
 from rest_framework.views import APIView
 from rest_framework import status
@@ -15,6 +16,11 @@ from .models import Cart, CartItem, Favorite
 from .serializers import CartSerializer, CartItemSerializer, FavoriteSerializer
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework.response import Response
+from django.utils.timezone import localtime, now
+from rest_framework.generics import ListAPIView
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from rest_framework.decorators import api_view
 
 class ParentCategoryViewSet(ReadOnlyModelViewSet):
     queryset = Category.objects.filter(parent__isnull=True)
@@ -53,8 +59,6 @@ class OrderItemViewSet(ModelViewSet):
 class OrderViewSet(ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
-
-
 
 
 class CartViewSet(ModelViewSet):
@@ -146,3 +150,66 @@ class ProductsBySupplierView(APIView):
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+@csrf_exempt
+@api_view(['POST'])
+def create_order(request):
+    user = request.user
+    product_id = request.data.get('product_id')
+    supplier_id = request.data.get('supplier_id')
+    quantity = request.data.get('quantity', 1)
+    delivery_address = request.data.get('delivery_address', '')
+
+    # Validate product and supplier existence
+    try:
+        product = Product.objects.get(id=product_id)
+        supplier = Supplier.objects.get(id=supplier_id)
+    except Product.DoesNotExist:
+        return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Supplier.DoesNotExist:
+        return Response({'error': 'Supplier not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Calculate prices
+    unit_price = product.price_retail
+    total_price = unit_price * quantity
+
+    # Create OrderItem
+    order_item = OrderItem.objects.create(
+        product=product,
+        quantity=quantity,
+        unit_price=unit_price,
+        total_price=total_price,
+        delivery_address=delivery_address
+    )
+
+    # Create Order and add items
+    order = Order.objects.create(
+        user=user,
+        supplier=supplier,
+        delivery_date=now(),
+        delivery_cost=0.0,
+        total_cost=total_price,
+        payment_method='cash',
+        status='pending'
+    )
+    order.items.add(order_item)
+
+    # Respond with success message
+    return Response({'message': 'Order created successfully', 'order_id': order.id}, status=status.HTTP_201_CREATED)
+
+class ListOrdersAPIView(ListAPIView):
+    serializer_class = OrderSerializer
+
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user)
+
+class ApplicationViewSet(ModelViewSet):
+    queryset = Application.objects.all()
+    serializer_class = ApplicationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Application.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)

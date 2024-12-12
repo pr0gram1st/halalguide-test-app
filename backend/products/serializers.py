@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     Category, Supplier, Product, SupplierPrice,
-    Banner, OrderItem, Order, Cart, CartItem, Favorite
+    Banner, OrderItem, Order, Cart, CartItem, Favorite, Application
 )
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -60,7 +60,6 @@ class BannerSerializer(serializers.ModelSerializer):
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product = ProductSerializer()  # Nested product data
-    supplier = SupplierSerializer()  # Nested supplier data
 
     class Meta:
         model = OrderItem
@@ -138,3 +137,33 @@ class ProductsBySupplierSerializer(serializers.ModelSerializer):
         if obj.photo and request:
             return request.build_absolute_uri(obj.photo.url)
         return None
+
+
+class ApplicationSerializer(serializers.ModelSerializer):
+    orders = OrderSerializer(many=True)  # Nested serializer
+
+    class Meta:
+        model = Application
+        fields = ['id', 'user', 'orders', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+    def create(self, validated_data):
+        orders_data = validated_data.pop('orders', [])
+        application = Application.objects.create(**validated_data)
+
+        # Create or associate orders with this application
+        for order_data in orders_data:
+            order = Order.objects.get(id=order_data['id'])  # Get existing orders
+            application.orders.add(order)
+
+        return application
+
+    def update(self, instance, validated_data):
+        orders_data = validated_data.pop('orders', [])
+        instance.orders.clear()  # Remove existing associations
+        for order_data in orders_data:
+            order = Order.objects.get(id=order_data['id'])
+            instance.orders.add(order)
+
+        instance.save()
+        return instance
