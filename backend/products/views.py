@@ -108,19 +108,45 @@ class FavoriteViewSet(ModelViewSet):
         user = request.user
         product_id = request.data.get("product_id")
 
-        Favorite.objects.get_or_create(user=user, product_id=product_id)
-        return Response({"message": "Item added to favorites."})
+        if not product_id:
+            return Response({"error": "Product ID is required."}, status=400)
+
+        try:
+            product = Product.objects.get(id=product_id)
+            favorite, created = Favorite.objects.get_or_create(user=user, product=product)
+
+            product.is_favorite = True
+            product.save()
+
+            return Response({"message": "Item added to favorites."})
+
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found."}, status=404)
 
     @action(detail=False, methods=["post"])
     def remove_from_favorites(self, request):
         user = request.user
         product_id = request.data.get("product_id")
 
-        favorite = Favorite.objects.filter(user=user, product_id=product_id).first()
-        if favorite:
+        if not product_id:
+            return Response({"error": "Product ID is required."}, status=400)
+
+        try:
+            favorite = Favorite.objects.filter(user=user, product_id=product_id).first()
+
+            if not favorite:
+                return Response({"error": "Item not found in favorites."}, status=404)
+
             favorite.delete()
+            product = Product.objects.get(id=product_id)
+            product.is_favorited = False
+            product.save()
+
             return Response({"message": "Item removed from favorites."})
-        return Response({"error": "Item not found in favorites."}, status=404)
+
+        except Product.DoesNotExist:
+            return Response({"error": "Product not found."}, status=404)
+
 
 
 class SuppliersByCategoryView(APIView):
