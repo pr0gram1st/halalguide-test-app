@@ -75,7 +75,7 @@ class OrderItem(models.Model):
     delivery_address = models.CharField(max_length=255)
 
     def __str__(self):
-        return f"{self.quantity} x {self.product.name} from {self.supplier.name}"
+        return f"{self.quantity} x {self.product.name}"
 
 class Order(models.Model):
     PAYMENT_METHODS = [
