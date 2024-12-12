@@ -44,6 +44,7 @@ class Product(models.Model):
         through='SupplierPrice',
         related_name='products'
     )
+    is_favorite = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name

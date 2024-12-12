@@ -52,7 +52,7 @@ class SupplierAdmin(admin.ModelAdmin):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     # form = ProductAdminForm
-    list_display = ('name', 'article', 'price_retail', 'city', 'min_order_quantity')
+    list_display = ('name', 'article', 'price_retail', 'city', 'min_order_quantity', 'is_favorite')
     search_fields = ('name', 'article')
     list_filter = ('city', 'price_retail')
     inlines = [SupplierPriceInline]
