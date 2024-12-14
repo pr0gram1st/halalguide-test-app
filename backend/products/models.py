@@ -74,6 +74,7 @@ class OrderItem(models.Model):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     delivery_address = models.CharField(max_length=255)
+    # need to add order foreign key
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name}"
@@ -98,7 +99,7 @@ class Order(models.Model):
     total_cost = models.DecimalField(max_digits=10, decimal_places=2)
     payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS)
     comment = models.TextField(null=True, blank=True)
-    supplier_details = models.ManyToManyField(Supplier, related_name='orders')
+    supplier_details = models.ManyToManyField(Supplier, related_name='orders') # ForeignKey
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     timestamp = models.DateTimeField(auto_now_add=True)
 
@@ -125,6 +126,7 @@ class CartItem(models.Model):
 class Favorite(models.Model):
     user = models.ForeignKey(User, related_name="favorites", on_delete=models.CASCADE)
     product = models.ForeignKey(Product, related_name="favorited_by", on_delete=models.CASCADE)
+    supplier = models.ForeignKey(Supplier, related_name="favorited_by_supplier", on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         return f"{self.product.name} favorited by {self.user.username}"
@@ -166,3 +168,5 @@ class Application(models.Model):
 
     def __str__(self):
         return f"Application by {self.user.username} on {localtime(self.created_at)}"
+
+''' Suppliers: Category: Products '''

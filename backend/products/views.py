@@ -186,7 +186,6 @@ def create_order(request):
     quantity = request.data.get('quantity', 1)
     delivery_address = request.data.get('delivery_address', '')
 
-    # Validate product and supplier existence
     try:
         product = Product.objects.get(id=product_id)
         supplier = Supplier.objects.get(id=supplier_id)
@@ -195,11 +194,9 @@ def create_order(request):
     except Supplier.DoesNotExist:
         return Response({'error': 'Supplier not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Calculate prices
     unit_price = product.price_retail
     total_price = unit_price * quantity
 
-    # Create OrderItem
     order_item = OrderItem.objects.create(
         product=product,
         quantity=quantity,
@@ -208,7 +205,6 @@ def create_order(request):
         delivery_address=delivery_address
     )
 
-    # Create Order and add items
     order = Order.objects.create(
         user=user,
         supplier=supplier,
@@ -220,8 +216,14 @@ def create_order(request):
     )
     order.items.add(order_item)
 
-    # Respond with success message
-    return Response({'message': 'Order created successfully', 'order_id': order.id}, status=status.HTTP_201_CREATED)
+    application, created = Application.objects.get_or_create(user=user)
+    application.orders.add(order)
+
+    return Response(
+        {'message': 'Order created successfully', 'order_id': order.id, 'application_id': application.id},
+        status=status.HTTP_201_CREATED
+    )
+
 
 class ListOrdersAPIView(ListAPIView):
     serializer_class = OrderSerializer
