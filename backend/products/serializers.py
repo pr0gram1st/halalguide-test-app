@@ -167,3 +167,5 @@ class ApplicationSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+#b essets
