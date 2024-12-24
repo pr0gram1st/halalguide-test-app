@@ -68,7 +68,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True)  # Nested order items
-    user = serializers.StringRelatedField()  # Replace with `UserSerializer()` if you want nested user data
+    user = serializers.StringRelatedField()
+    supplier_details = SupplierSerializer(many=True)# Replace with `UserSerializer()` if you want nested user data
 
     class Meta:
         model = Order
