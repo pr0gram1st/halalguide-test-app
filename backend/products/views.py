@@ -1,4 +1,4 @@
-from .models import Category, Supplier, Product, SupplierPrice, Banner, Order, Application
+from .models import Category, Supplier, Product, SupplierPrice, Banner, Order, Application, CartItem, Cart, Favorite
 from .serializers import (
     CategorySerializer, SupplierSerializer, ProductSerializer,
     SupplierPriceSerializer, BannerSerializer, OrderSerializer, SupplierByCategorySerializer, ProductsBySupplierSerializer,

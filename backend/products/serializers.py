@@ -5,9 +5,16 @@ from .models import (
 )
 
 class CategorySerializer(serializers.ModelSerializer):
+    children = serializers.SerializerMethodField()
+
     class Meta:
         model = Category
-        fields = ['id', 'name', 'parent']
+        fields = ['id', 'name', 'children']
+
+    def get_children(self, obj):
+        children = obj.children.all()
+        return CategorySerializer(children, many=True).data if children.exists() else []
+
 
 
 class SupplierSerializer(serializers.ModelSerializer):
