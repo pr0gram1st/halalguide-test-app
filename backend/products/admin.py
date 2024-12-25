@@ -1,10 +1,10 @@
 from django.contrib import admin
 from .models import (
     Category, Supplier, Product, SupplierPrice, Banner,
-    OrderItem, Order, Cart, CartItem, Favorite, Delivery, SupplierStatistics, Application
+    Order, Cart, CartItem, Favorite, Delivery, Application
 )
-# from .forms import ProductAdminForm
 
+# Inline classes
 class SupplierPriceInline(admin.TabularInline):
     model = SupplierPrice
     extra = 1
@@ -15,29 +15,10 @@ class CartItemInline(admin.TabularInline):
     extra = 1
 
 
-class OrderItemInline(admin.TabularInline):
-    model = Order.items.through
-    extra = 1
-
-
-@admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user_id', 'total_cost', 'status', 'delivery_date', 'payment_method')
-    search_fields = ('user_id', 'status')
-    list_filter = ('status', 'payment_method', 'delivery_date')
-    ordering = ('-timestamp',)
-    inlines = [OrderItemInline]
-
-
-@admin.register(OrderItem)
-class OrderItemAdmin(admin.ModelAdmin):
-    list_display = ('product', 'quantity', 'unit_price', 'total_price')
-    search_fields = ('product__name',)
-
-
+# Admin classes
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('id','name', 'parent')
+    list_display = ('id', 'name', 'parent')
     search_fields = ('name',)
     list_filter = ('parent',)
 
@@ -51,11 +32,16 @@ class SupplierAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    # form = ProductAdminForm
     list_display = ('name', 'article', 'price_retail', 'city', 'min_order_quantity', 'is_favorite')
     search_fields = ('name', 'article')
     list_filter = ('city', 'price_retail')
     inlines = [SupplierPriceInline]
+
+
+@admin.register(SupplierPrice)
+class SupplierPriceAdmin(admin.ModelAdmin):
+    list_display = ('supplier', 'product', 'price', 'delivery_time')
+    search_fields = ('supplier__name', 'product__name')
 
 
 @admin.register(Banner)
@@ -64,9 +50,24 @@ class BannerAdmin(admin.ModelAdmin):
 
     def photo_preview(self, obj):
         if obj.photo:
-            return obj.photo.url
+            return f'<img src="{obj.photo.url}" style="width: 50px; height: 50px;" />'
         return "No Image"
     photo_preview.short_description = "Preview"
+    photo_preview.allow_tags = True
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ('id', 'supplier_details', 'product', 'quantity', 'total_cost')
+    search_fields = ('supplier_details__name', 'product__name')
+    ordering = ('-id',)
+
+
+@admin.register(Application)
+class ApplicationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'status', 'payment_method', 'delivery_date', 'created_at')
+    search_fields = ('user__username',)
+    list_filter = ('status', 'payment_method', 'created_at')
 
 
 @admin.register(Cart)
@@ -75,21 +76,22 @@ class CartAdmin(admin.ModelAdmin):
     inlines = [CartItemInline]
 
 
+@admin.register(CartItem)
+class CartItemAdmin(admin.ModelAdmin):
+    list_display = ('cart', 'product', 'quantity')
+
+
 @admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
-    list_display = ('user', 'product')
+    list_display = ('user', 'product', 'supplier')
+    search_fields = ('user__username', 'product__name', 'supplier__name')
 
 
 @admin.register(Delivery)
 class DeliveryAdmin(admin.ModelAdmin):
-    list_display = ('user', 'address', 'delivery_date', 'status')
+    list_display = ('user', 'address', 'contact_number', 'delivery_date', 'status', 'created_at')
+    search_fields = ('user__username', 'address')
+    list_filter = ('status', 'delivery_date')
 
 
-@admin.register(SupplierStatistics)
-class SupplierStatisticsAdmin(admin.ModelAdmin):
-    list_display = ('supplier', 'product', 'total_supplied', 'average_rating', 'last_supply_date')
-
-
-admin.site.register(CartItem)
-admin.site.register(SupplierPrice)
-admin.site.register(Application)
+# Removing unnecessary `admin.site.register` calls since all models are explicitly handled.

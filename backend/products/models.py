@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.timezone import localtime, now
+from django.contrib.auth.models import User
+
 
 class Category(models.Model):
     name = models.CharField(max_length=255)
@@ -11,10 +13,11 @@ class Category(models.Model):
         blank=True,
         related_name='children'
     )
-    logo = models.ImageField(upload_to='category_logos/', null=True, blank=True)  # Added logo field
+    logo = models.ImageField(upload_to='category_logos/', null=True, blank=True)
 
     def __str__(self):
         return self.name
+
 
 class Supplier(models.Model):
     name = models.CharField(max_length=255)
@@ -27,6 +30,7 @@ class Supplier(models.Model):
 
     def __str__(self):
         return self.name
+
 
 class Product(models.Model):
     name = models.CharField(max_length=255)
@@ -49,6 +53,7 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+
 class SupplierPrice(models.Model):
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -57,6 +62,7 @@ class SupplierPrice(models.Model):
 
     def __str__(self):
         return f"{self.supplier.name} - {self.product.name}"
+
 
 class Banner(models.Model):
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
@@ -68,43 +74,50 @@ class Banner(models.Model):
         return f"Banner for {self.category or self.supplier or self.product}"
 
 
-class OrderItem(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='order_items')
-    quantity = models.PositiveIntegerField()
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2)
-    total_price = models.DecimalField(max_digits=10, decimal_places=2)
-    delivery_address = models.CharField(max_length=255)
-    # need to add order foreign key
+class Order(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
+    supplier_details = models.ForeignKey(
+        Supplier, on_delete=models.CASCADE, related_name="orders"
+    )
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="orders")
+    quantity = models.PositiveIntegerField(default=1)
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    def save(self, *args, **kwargs):
+        """Automatically calculate total cost based on product price and quantity."""
+        if not self.total_cost:
+            self.total_cost = self.product.price_retail * self.quantity
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.quantity} x {self.product.name}"
+        return f"Order: {self.quantity} x {self.product.name} from {self.supplier_details.name}"
 
-class Order(models.Model):
+
+
+class Application(models.Model):
     PAYMENT_METHODS = [
         ('cash', 'Cash'),
         ('non-cash', 'Non-Cash'),
-        ('online', 'Online')
+        ('online', 'Online'),
     ]
 
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('delivering', 'Delivering'),
-        ('completed', 'Completed')
+        ('completed', 'Completed'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', null=True)
-    items = models.ManyToManyField(OrderItem, related_name='orders')
-    delivery_date = models.DateTimeField()
-    delivery_cost = models.DecimalField(max_digits=10, decimal_places=2)
-    total_cost = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='applications')
+    orders = models.ManyToManyField(Order, related_name='applications')
+    payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS, default='cash')
     comment = models.TextField(null=True, blank=True)
-    supplier_details = models.ManyToManyField(Supplier, related_name='orders') # ForeignKey
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
-    timestamp = models.DateTimeField(auto_now_add=True)
+    delivery_date = models.DateField(default=now)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Order by {self.user.username} - {self.status}"
+        return f"Application by {self.user.username} on {localtime(self.created_at)}"
+
 
 class Cart(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -131,6 +144,7 @@ class Favorite(models.Model):
     def __str__(self):
         return f"{self.product.name} favorited by {self.user.username}"
 
+
 class Delivery(models.Model):
     STATUS_CHOICES = [
         ('PENDING', 'Pending'),
@@ -149,24 +163,3 @@ class Delivery(models.Model):
 
     def __str__(self):
         return f"Delivery for {self.user.username} on {self.delivery_date} ({self.get_status_display()})"
-
-
-class SupplierStatistics(models.Model):
-    supplier = models.CharField(max_length=255)
-    product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name="supplier_statistics")
-    total_supplied = models.PositiveIntegerField(default=0)
-    average_rating = models.FloatField(default=0.0)
-    last_supply_date = models.DateField(null=True, blank=True)
-
-    def __str__(self):
-        return f"Statistics for {self.supplier} (Product: {self.product.name})"
-
-class Application(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='applications')
-    orders = models.ManyToManyField(Order, related_name='applications')
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Application by {self.user.username} on {localtime(self.created_at)}"
-
-''' Suppliers: Category: Products '''

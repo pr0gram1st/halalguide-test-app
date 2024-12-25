@@ -1,112 +1,107 @@
 from rest_framework import serializers
 from .models import (
     Category, Supplier, Product, SupplierPrice,
-    Banner, OrderItem, Order, Cart, CartItem, Favorite, Application
+    Banner, Order, Cart, CartItem, Favorite, Application, Delivery
 )
 
 class CategorySerializer(serializers.ModelSerializer):
-    children = serializers.SerializerMethodField()
-    suppliers_count = serializers.SerializerMethodField()
-
     class Meta:
         model = Category
-        fields = ['id', 'name', 'parent', 'suppliers_count', 'children']
+        fields = ['id', 'name', 'parent']
 
-    def get_children(self, obj):
-        children = obj.children.all()
-        return CategorySerializer(children, many=True).data if children.exists() else []
-
-    def get_suppliers_count(self, obj):
-        return obj.suppliers.count()
 
 class SupplierSerializer(serializers.ModelSerializer):
-    categories = serializers.SerializerMethodField()
-
     class Meta:
         model = Supplier
-        fields = ['id', 'name', 'logo', 'rating', 'is_favourite', 'city', 'categories', 'contact_number']
-
-    def get_categories(self, obj):
-        parent_categories = obj.categories.filter(parent__isnull=True)
-        return CategorySerializer(parent_categories, many=True).data
+        fields = ['id', 'name', 'logo', 'rating', 'city', 'contact_number']
 
 
 class SupplierPriceSerializer(serializers.ModelSerializer):
-    supplier = SupplierSerializer()
-    product = serializers.PrimaryKeyRelatedField(read_only=True)
-
     class Meta:
         model = SupplierPrice
-        fields = '__all__'
+        fields = ['supplier', 'product', 'price', 'delivery_time']
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    suppliers = SupplierSerializer(many=True)  # Nested supplier data
-
     class Meta:
         model = Product
-        fields = '__all__'
+        fields = [
+            'id', 'name', 'article', 'price_retail', 'price_wholesale',
+            'min_order_quantity', 'delivery_time', 'city', 'description', 'photo', 'is_favorite'
+        ]
 
 
 class BannerSerializer(serializers.ModelSerializer):
-    category = CategorySerializer()  # Nested category data
-    supplier = SupplierSerializer()
-    product = ProductSerializer()
-
     class Meta:
         model = Banner
-        fields = '__all__'
-
-
-class OrderItemSerializer(serializers.ModelSerializer):
-    product = ProductSerializer()  # Nested product data
-
-    class Meta:
-        model = OrderItem
-        fields = '__all__'
+        fields = ['id', 'category', 'supplier', 'product', 'photo']
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(many=True)  # Nested order items
-    user = serializers.StringRelatedField()
-    supplier_details = SupplierSerializer(many=True)# Replace with `UserSerializer()` if you want nested user data
+    supplier_details = SupplierSerializer(many=True, read_only=True)
+    total_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
     class Meta:
         model = Order
-        fields = '__all__'
+        fields = ['id', 'user', 'supplier_details', 'product', 'quantity', 'total_cost']
 
     def create(self, validated_data):
-        items_data = validated_data.pop('items')
         order = Order.objects.create(**validated_data)
-        for item_data in items_data:
-            OrderItem.objects.create(order=order, **item_data)
         return order
 
 
 class CartItemSerializer(serializers.ModelSerializer):
-    product = ProductSerializer()  # Nested product data
-
     class Meta:
         model = CartItem
-        fields = '__all__'
+        fields = ['id', 'product', 'quantity']
 
 
 class CartSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField()  # Replace with `UserSerializer()` for nested user data
-    items = CartItemSerializer(many=True, read_only=True)  # Nested cart items
+    items = CartItemSerializer(many=True, read_only=True)
 
     class Meta:
         model = Cart
-        fields = '__all__'
+        fields = ['id', 'user', 'updated_at', 'items']
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField()  # Replace with `UserSerializer()` for nested user data
-    product = ProductSerializer()  # Nested product data
-
     class Meta:
         model = Favorite
-        fields = '__all__'
+        fields = ['id', 'user', 'product', 'supplier']
+
+
+class ApplicationSerializer(serializers.ModelSerializer):
+    orders = OrderSerializer(many=True)
+
+    class Meta:
+        model = Application
+        fields = [
+            'id', 'user', 'orders', 'payment_method',
+            'status', 'delivery_date', 'comment', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at']
+
+    def create(self, validated_data):
+        orders_data = validated_data.pop('orders')
+        application = Application.objects.create(**validated_data)
+        for order_data in orders_data:
+            order = Order.objects.create(**order_data)
+            application.orders.add(order)
+        return application
+
+
+class DeliverySerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField(read_only=True)
+    address = serializers.CharField(max_length=255)
+    contact_number = serializers.CharField(max_length=15)
+    status = serializers.ChoiceField(choices=Delivery.STATUS_CHOICES, default='PENDING')
+    delivery_date = serializers.DateField()
+    created_at = serializers.DateTimeField(read_only=True)
+    updated_at = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model = Delivery
+        fields = ['id', 'user', 'address', 'contact_number', 'status', 'delivery_date', 'created_at', 'updated_at']
 
 
 class SupplierByCategorySerializer(serializers.ModelSerializer):
@@ -124,6 +119,7 @@ class SupplierByCategorySerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.logo.url)
         return None
 
+
 class ProductsBySupplierSerializer(serializers.ModelSerializer):
     min_delivery_time = serializers.CharField()
     min_price = serializers.DecimalField(max_digits=10, decimal_places=2)
@@ -138,35 +134,3 @@ class ProductsBySupplierSerializer(serializers.ModelSerializer):
         if obj.photo and request:
             return request.build_absolute_uri(obj.photo.url)
         return None
-
-
-class ApplicationSerializer(serializers.ModelSerializer):
-    orders = OrderSerializer(many=True)  # Nested serializer
-
-    class Meta:
-        model = Application
-        fields = ['id', 'user', 'orders', 'created_at']
-        read_only_fields = ['id', 'created_at']
-
-    def create(self, validated_data):
-        orders_data = validated_data.pop('orders', [])
-        application = Application.objects.create(**validated_data)
-
-        # Create or associate orders with this application
-        for order_data in orders_data:
-            order = Order.objects.get(id=order_data['id'])  # Get existing orders
-            application.orders.add(order)
-
-        return application
-
-    def update(self, instance, validated_data):
-        orders_data = validated_data.pop('orders', [])
-        instance.orders.clear()  # Remove existing associations
-        for order_data in orders_data:
-            order = Order.objects.get(id=order_data['id'])
-            instance.orders.add(order)
-
-        instance.save()
-        return instance
-
-#b essets
