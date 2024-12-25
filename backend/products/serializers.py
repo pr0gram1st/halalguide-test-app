@@ -5,22 +5,19 @@ from .models import (
 )
 
 class CategorySerializer(serializers.ModelSerializer):
-    logo = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
+    suppliers_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Category
-        fields = ['id', 'name', 'logo', 'children']
+        fields = ['id', 'name', 'suppliers_count', 'children']
 
     def get_children(self, obj):
         children = obj.children.all()
         return CategorySerializer(children, many=True).data if children.exists() else []
 
-    def get_logo(self, obj):
-        request = self.context.get('request')
-        if obj.logo and request:
-            return request.build_absolute_uri(obj.logo.url)
-        return None
+    def get_suppliers_count(self, obj):
+        return obj.suppliers.count()
 
 
 
