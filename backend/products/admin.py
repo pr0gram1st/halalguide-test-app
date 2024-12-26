@@ -38,10 +38,10 @@ class ProductAdmin(admin.ModelAdmin):
     inlines = [SupplierPriceInline]
 
 
-@admin.register(SupplierPrice)
-class SupplierPriceAdmin(admin.ModelAdmin):
-    list_display = ('supplier', 'product', 'price', 'delivery_time')
-    search_fields = ('supplier__name', 'product__name')
+# @admin.register(SupplierPrice)
+# class SupplierPriceAdmin(admin.ModelAdmin):
+#     list_display = ('supplier', 'product', 'price', 'delivery_time')
+#     search_fields = ('supplier__name', 'product__name')
 
 
 @admin.register(Banner)

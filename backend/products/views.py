@@ -48,7 +48,7 @@ class OrderViewSet(ModelViewSet):
 
 class CartViewSet(ModelViewSet):
     serializer_class = CartSerializer
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Cart.objects.filter(user=self.request.user)
