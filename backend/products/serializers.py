@@ -90,10 +90,13 @@ class CartSerializer(serializers.ModelSerializer):
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    product = ProductSerializer(read_only=True)
+    supplier = SupplierSerializer(read_only=True)
+
     class Meta:
         model = Favorite
         fields = ['id', 'user', 'product', 'supplier']
-
 
 class ApplicationSerializer(serializers.ModelSerializer):
     orders = OrderSerializer(many=True)
