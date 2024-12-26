@@ -3,6 +3,8 @@ from .models import (
     Category, Supplier, Product, SupplierPrice,
     Banner, Order, Cart, CartItem, Favorite, Application, Delivery
 )
+from django.contrib.auth.models import User
+
 
 class CategorySerializer(serializers.ModelSerializer):
     children = serializers.SerializerMethodField()
@@ -23,9 +25,11 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class SupplierSerializer(serializers.ModelSerializer):
+    categories = CategorySerializer(many=True, read_only=True)
+
     class Meta:
         model = Supplier
-        fields = ['id', 'name', 'logo', 'rating', 'city', 'contact_number']
+        fields = ['id', 'name', 'logo', 'rating', 'is_favourite', 'city', 'categories', 'contact_number']
 
 
 class SupplierPriceSerializer(serializers.ModelSerializer):
@@ -49,8 +53,16 @@ class BannerSerializer(serializers.ModelSerializer):
         fields = ['id', 'category', 'supplier', 'product', 'photo']
 
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email']
+
+
 class OrderSerializer(serializers.ModelSerializer):
-    supplier_details = SupplierSerializer(many=True, read_only=True)
+    supplier_details = SupplierSerializer(read_only=True)
+    product = ProductSerializer(read_only=True)  # Use nested Product representation
+    user = UserSerializer(read_only=True)  # Use nested User representation
     total_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
     class Meta:
@@ -60,6 +72,7 @@ class OrderSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         order = Order.objects.create(**validated_data)
         return order
+
 
 
 class CartItemSerializer(serializers.ModelSerializer):

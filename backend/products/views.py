@@ -114,6 +114,44 @@ class ProductsBySupplierView(APIView):
 @csrf_exempt
 @api_view(['POST'])
 def create_order(request):
+    """
+        Creates a new order.
+
+        This endpoint allows a user to create an order for a specific product from a specific supplier.
+
+        **Request Body Parameters:**
+        - `product_id` (int): The ID of the product to be ordered (required).
+        - `supplier_id` (int): The ID of the supplier providing the product (required).
+        - `quantity` (int): The quantity of the product to be ordered. Defaults to `1` if not provided (optional).
+        - `delivery_address` (string): The address for product delivery. Defaults to an empty string if not provided (optional).
+
+        **Sample Request:**
+        ```json
+        {
+            "product_id": 1,
+            "supplier_id": 2,
+            "quantity": 3,
+            "delivery_address": "123 Main St, Example City"
+        }
+        ```
+
+        **Sample Response (201 Created):**
+        ```json
+        {
+            "message": "Order created successfully",
+            "order_id": 10
+        }
+        ```
+
+        **Response Details:**
+        - `201 Created`: Order was created successfully.
+        - `404 Not Found`: Either the product or the supplier was not found.
+        - `400 Bad Request`: If the input data is invalid.
+
+        **Potential Errors:**
+        - `Product not found`: If the `product_id` does not exist in the database.
+        - `Supplier not found`: If the `supplier_id` does not exist in the database.
+        """
     user = request.user
     product_id = request.data.get('product_id')
     supplier_id = request.data.get('supplier_id')
