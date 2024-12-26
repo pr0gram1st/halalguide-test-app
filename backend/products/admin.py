@@ -5,9 +5,9 @@ from .models import (
 )
 
 # Inline classes
-class SupplierPriceInline(admin.TabularInline):
-    model = SupplierPrice
-    extra = 1
+# class SupplierInline(admin.TabularInline):
+#     model = Supplier
+#     extra = 1
 
 
 class CartItemInline(admin.TabularInline):
@@ -30,18 +30,50 @@ class SupplierAdmin(admin.ModelAdmin):
     list_filter = ('city', 'rating', 'is_favourite')
 
 
+class SupplierPriceInline(admin.TabularInline):
+    model = SupplierPrice
+    extra = 1  # Number of empty forms to display
+    fields = ['supplier', 'price']  # Adjust fields accordingly for 'SupplierPrice'
+
+
+# Admin for the Product model
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'article', 'price_retail', 'city', 'min_order_quantity', 'is_favorite')
-    search_fields = ('name', 'article')
-    list_filter = ('city', 'price_retail')
+    # List view options
+    list_display = (
+        'name', 'article', 'price_wholesale', 'price_retail', 'min_order_quantity',
+        'delivery_time', 'city', 'description', 'is_favorite'
+    )
+    search_fields = ('name', 'article', 'city', 'description')
+    list_filter = ('city', 'is_favorite', 'price_retail')
+
+    # Organize the fields in the form view
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'article', 'price_wholesale', 'price_retail')
+        }),
+        ('Product Details', {
+            'fields': ('min_order_quantity', 'delivery_time', 'city', 'description', 'characteristics', 'photo')
+        }),
+        ('Favorites', {
+            'fields': ('is_favorite',)
+        }),
+    )
+
+    # Use inline model to manage the ManyToManyField using the SupplierPrice model
     inlines = [SupplierPriceInline]
 
+    def get_suppliers(self, obj):
+        return ", ".join([supplier.supplier.name for supplier in obj.supplierprice_set.all()])
 
-# @admin.register(SupplierPrice)
-# class SupplierPriceAdmin(admin.ModelAdmin):
-#     list_display = ('supplier', 'product', 'price', 'delivery_time')
-#     search_fields = ('supplier__name', 'product__name')
+    get_suppliers.short_description = 'Suppliers'
+
+
+
+@admin.register(SupplierPrice)
+class SupplierPriceAdmin(admin.ModelAdmin):
+    list_display = ('supplier', 'product', 'price', 'delivery_time')
+    search_fields = ('supplier__name', 'product__name')
 
 
 @admin.register(Banner)

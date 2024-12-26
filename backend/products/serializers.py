@@ -39,11 +39,12 @@ class SupplierPriceSerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
+    suppliers = SupplierSerializer(many=True, read_only=True)
     class Meta:
         model = Product
         fields = [
             'id', 'name', 'article', 'price_retail', 'price_wholesale',
-            'min_order_quantity', 'delivery_time', 'city', 'description', 'photo', 'is_favorite'
+            'min_order_quantity', 'delivery_time', 'city', 'description', 'photo', 'suppliers', 'is_favorite'
         ]
 
 
