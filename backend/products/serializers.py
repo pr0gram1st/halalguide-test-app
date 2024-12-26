@@ -90,13 +90,23 @@ class CartSerializer(serializers.ModelSerializer):
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-    product = ProductSerializer(read_only=True)
-    supplier = SupplierSerializer(read_only=True)
+    user = serializers.ReadOnlyField(source='user.id')
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())  # Expecting the product ID
+    supplier = serializers.PrimaryKeyRelatedField(queryset=Supplier.objects.all(), required=False)
 
     class Meta:
         model = Favorite
         fields = ['id', 'user', 'product', 'supplier']
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+
+        if isinstance(instance, Favorite):
+            representation['product'] = ProductSerializer(instance.product).data
+            if instance.supplier:
+                representation['supplier'] = SupplierSerializer(instance.supplier).data
+
+        return representation
 
 class ApplicationSerializer(serializers.ModelSerializer):
     orders = OrderSerializer(many=True)

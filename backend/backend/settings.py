@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -47,7 +48,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -160,6 +161,16 @@ REST_FRAMEWORK = {
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
 }
 SEARCH_PARAM_QUERY_NAME = "query"
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(weeks=2),  # Set access token expiration time to 2 weeks
+    'REFRESH_TOKEN_LIFETIME': timedelta(weeks=4),  # Optionally set a longer expiration time for refresh tokens
+    # 'ROTATE_REFRESH_TOKENS': False,  # Disable rotating refresh tokens if you don't want it
+    # 'BLACKLIST_AFTER_ROTATION': False,  # Disable blacklisting after token rotation (if enabled)
+    # 'ALGORITHM': 'HS256',  # You can choose the JWT signing algorithm, like HS256
+    # 'SIGNING_KEY': 'your-secret-key-here',  # Replace with your actual secret key
+    # 'AUTH_HEADER_TYPES': ('Bearer',),  # Default is 'Bearer', you can customize it
+}
 
 # django-cors-headers - https://github.com/adamchainz/django-cors-headers#setup
 CORS_ALLOWED_ORIGINS = [

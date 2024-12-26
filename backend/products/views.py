@@ -87,6 +87,32 @@ class FavoriteViewSet(ModelViewSet):
     def get_queryset(self):
         return Favorite.objects.filter(user=self.request.user)
 
+    def perform_create(self, serializer):
+        product = serializer.validated_data.get('product')
+        supplier = serializer.validated_data.get('supplier', None)
+
+        favorite = serializer.save(user=self.request.user)
+
+        product.is_favorite = True
+        product.save()
+
+        supplier.is_favorite = True
+        supplier.save()
+
+        return favorite
+
+    def perform_destroy(self, instance):
+        product = instance.product
+        supplier = instance.supplier
+
+        product.is_favorite = False
+        product.save()
+
+        supplier.is_favorite = False
+        supplier.save()
+
+        super().perform_destroy(instance)
+
 class SuppliersByCategoryView(APIView):
     def get(self, request):
         category_id = request.query_params.get('category_id')
