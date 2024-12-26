@@ -127,7 +127,14 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # Include any additional authentication methods, like JWT
+    ],
     # "DEFAULT_AUTHENTICATION_CLASSES": (
     #     "rest_framework.authentication.TokenAuthentication",
     #     # "beksar.api.restauth.authentication.OptimizedJWTAuthentication",

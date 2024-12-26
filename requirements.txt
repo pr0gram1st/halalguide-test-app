@@ -11,3 +11,4 @@ PyYAML==6.0.2
 sqlparse==0.5.2
 uritemplate==4.1.1
 psycopg2==2.7.4
+djangorestframework-simplejwt==5.3.1

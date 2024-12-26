@@ -23,6 +23,6 @@ urlpatterns = [
     path('', include(router.urls)),
     path('suppliers-by-category/', SuppliersByCategoryView.as_view(), name='suppliers-by-category'),
     path('suppliers/<int:supplier_id>/products/', ProductsBySupplierView.as_view(), name='products-by-supplier'),
-    path('orders/create/', create_order, name='create_order'),
+    path('custom-orders/create/', create_order, name='create_order'),
     path('orders/', ListOrdersAPIView.as_view(), name='list-orders'),
 ]

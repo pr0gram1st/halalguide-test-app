@@ -5,18 +5,18 @@ from .serializers import (
     ApplicationSerializer, CartSerializer, CartItemSerializer, FavoriteSerializer
 )
 from rest_framework.views import APIView
-from rest_framework import status
 from django.db.models import Q, Count, Min
 from django.db import models
 
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
-from rest_framework.decorators import action, api_view
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.generics import ListAPIView
 from django.utils.timezone import now
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from rest_framework import status
 
 class ParentCategoryViewSet(ReadOnlyModelViewSet):
     queryset = Category.objects.filter(parent__isnull=True)
@@ -111,52 +111,54 @@ class ProductsBySupplierView(APIView):
         serializer = ProductsBySupplierSerializer(products, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-@csrf_exempt
+
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def create_order(request):
     """
-        Creates a new order.
+    Creates a new order.
 
-        This endpoint allows a user to create an order for a specific product from a specific supplier.
+    This endpoint allows a user to create an order for a specific product from a specific supplier.
 
-        **Request Body Parameters:**
-        - `product_id` (int): The ID of the product to be ordered (required).
-        - `supplier_id` (int): The ID of the supplier providing the product (required).
-        - `quantity` (int): The quantity of the product to be ordered. Defaults to `1` if not provided (optional).
-        - `delivery_address` (string): The address for product delivery. Defaults to an empty string if not provided (optional).
+    **Request Body Parameters:**
+    - `product_id` (int): The ID of the product to be ordered (required).
+    - `supplier_id` (int): The ID of the supplier providing the product (required).
+    - `quantity` (int): The quantity of the product to be ordered. Defaults to `1` if not provided (optional).
 
-        **Sample Request:**
-        ```json
-        {
-            "product_id": 1,
-            "supplier_id": 2,
-            "quantity": 3,
-            "delivery_address": "123 Main St, Example City"
-        }
-        ```
+    **Sample Request:**
+    ```json
+    {
+        "product_id": 1,
+        "supplier_id": 2,
+        "quantity": 3,
+    }
+    ```
 
-        **Sample Response (201 Created):**
-        ```json
-        {
-            "message": "Order created successfully",
-            "order_id": 10
-        }
-        ```
+    **Sample Response (201 Created):**
+    ```json
+    {
+        "message": "Order created successfully",
+        "order_id": 10
+    }
+    ```
 
-        **Response Details:**
-        - `201 Created`: Order was created successfully.
-        - `404 Not Found`: Either the product or the supplier was not found.
-        - `400 Bad Request`: If the input data is invalid.
+    **Response Details:**
+    - `201 Created`: Order was created successfully.
+    - `404 Not Found`: Either the product or the supplier was not found.
+    - `400 Bad Request`: If the input data is invalid.
 
-        **Potential Errors:**
-        - `Product not found`: If the `product_id` does not exist in the database.
-        - `Supplier not found`: If the `supplier_id` does not exist in the database.
-        """
+    **Potential Errors:**
+    - `Product not found`: If the `product_id` does not exist in the database.
+    - `Supplier not found`: If the `supplier_id` does not exist in the database.
+    """
+
     user = request.user
+    if not user.is_authenticated:
+        return Response({'error': 'User not authenticated'})
+
     product_id = request.data.get('product_id')
     supplier_id = request.data.get('supplier_id')
     quantity = request.data.get('quantity', 1)
-    delivery_address = request.data.get('delivery_address', '')
 
     try:
         product = Product.objects.get(id=product_id)
@@ -170,12 +172,10 @@ def create_order(request):
 
     order = Order.objects.create(
         user=user,
-        supplier=supplier,
+        supplier_details=supplier,
+        product=product,
+        quantity=quantity,
         total_cost=total_price,
-        delivery_date=now(),
-        delivery_cost=0.0,
-        payment_method='cash',
-        status='pending'
     )
 
     return Response(
