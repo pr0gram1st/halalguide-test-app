@@ -99,7 +99,25 @@ class FavoriteSerializer(serializers.ModelSerializer):
         model = Favorite
         fields = ['id', 'user', 'product', 'supplier']
 
+    def validate(self, data):
+        """
+        Ensure the user cannot add the same product from the same supplier more than once.
+        """
+        user = self.context['request'].user
+        product = data.get('product')
+        supplier = data.get('supplier')
+
+        if Favorite.objects.filter(user=user, product=product, supplier=supplier).exists():
+            raise serializers.ValidationError(
+                "You have already added this product from this supplier to your favorites."
+            )
+
+        return data
+
     def to_representation(self, instance):
+        """
+        Customize the serialized output to include nested product and supplier details.
+        """
         representation = super().to_representation(instance)
 
         if isinstance(instance, Favorite):
@@ -108,6 +126,7 @@ class FavoriteSerializer(serializers.ModelSerializer):
                 representation['supplier'] = SupplierSerializer(instance.supplier).data
 
         return representation
+
 
 class ApplicationSerializer(serializers.ModelSerializer):
     orders = OrderSerializer(many=True)
