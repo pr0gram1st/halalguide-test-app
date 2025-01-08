@@ -1,18 +1,20 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from .models import (
     Category, Supplier, Product, SupplierPrice, Banner,
     Order, Cart, CartItem, Favorite, Delivery, Application
 )
 
 # Inline classes
-# class SupplierInline(admin.TabularInline):
-#     model = Supplier
-#     extra = 1
-
-
 class CartItemInline(admin.TabularInline):
     model = CartItem
     extra = 1
+
+
+class SupplierPriceInline(admin.TabularInline):
+    model = SupplierPrice
+    extra = 1
+    fields = ['supplier', 'price']
 
 
 # Admin classes
@@ -25,49 +27,30 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Supplier)
 class SupplierAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'city', 'rating', 'is_favourite')
+    list_display = (
+        'id', 'name', 'city', 'rating', 'is_favourite',
+        'price_wholesale', 'price_retail', 'min_order_quantity',
+        'delivery_time'
+    )
     search_fields = ('name', 'city')
     list_filter = ('city', 'rating', 'is_favourite')
 
 
-class SupplierPriceInline(admin.TabularInline):
-    model = SupplierPrice
-    extra = 1  # Number of empty forms to display
-    fields = ['supplier', 'price']  # Adjust fields accordingly for 'SupplierPrice'
-
-
-# Admin for the Product model
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    # List view options
-    list_display = (
-        'name', 'article', 'price_wholesale', 'price_retail', 'min_order_quantity',
-        'delivery_time', 'city', 'description', 'is_favorite'
-    )
+    list_display = ('name', 'article', 'city', 'description', 'is_favorite', 'get_suppliers')
     search_fields = ('name', 'article', 'city', 'description')
-    list_filter = ('city', 'is_favorite', 'price_retail')
-
-    # Organize the fields in the form view
+    list_filter = ('city', 'is_favorite')
     fieldsets = (
-        (None, {
-            'fields': ('name', 'article', 'price_wholesale', 'price_retail')
-        }),
-        ('Product Details', {
-            'fields': ('min_order_quantity', 'delivery_time', 'city', 'description', 'characteristics', 'photo')
-        }),
-        ('Favorites', {
-            'fields': ('is_favorite',)
-        }),
+        (None, {'fields': ('name', 'article')}),
+        ('Product Details', {'fields': ('city', 'description', 'characteristics', 'photo', 'category')}),
+        ('Favorites', {'fields': ('is_favorite',)}),
     )
-
-    # Use inline model to manage the ManyToManyField using the SupplierPrice model
     inlines = [SupplierPriceInline]
 
     def get_suppliers(self, obj):
-        return ", ".join([supplier.supplier.name for supplier in obj.supplierprice_set.all()])
-
+        return ", ".join([str(sp.supplier.name) for sp in obj.supplierprice_set.all()])
     get_suppliers.short_description = 'Suppliers'
-
 
 
 @admin.register(SupplierPrice)
@@ -82,10 +65,9 @@ class BannerAdmin(admin.ModelAdmin):
 
     def photo_preview(self, obj):
         if obj.photo:
-            return f'<img src="{obj.photo.url}" style="width: 50px; height: 50px;" />'
+            return format_html('<img src="{}" style="width: 50px; height: 50px;" />', obj.photo.url)
         return "No Image"
     photo_preview.short_description = "Preview"
-    photo_preview.allow_tags = True
 
 
 @admin.register(Order)
@@ -115,7 +97,7 @@ class CartItemAdmin(admin.ModelAdmin):
 
 @admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
-    list_display = ('user', 'product', 'supplier')
+    list_display = ('id', 'user', 'product', 'supplier')
     search_fields = ('user__username', 'product__name', 'supplier__name')
 
 
@@ -124,6 +106,3 @@ class DeliveryAdmin(admin.ModelAdmin):
     list_display = ('user', 'address', 'contact_number', 'delivery_date', 'status', 'created_at')
     search_fields = ('user__username', 'address')
     list_filter = ('status', 'delivery_date')
-
-
-# Removing unnecessary `admin.site.register` calls since all models are explicitly handled.

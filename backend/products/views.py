@@ -96,8 +96,9 @@ class FavoriteViewSet(ModelViewSet):
         product.is_favorite = True
         product.save()
 
-        supplier.is_favorite = True
-        supplier.save()
+        if supplier:
+            supplier.is_favorite = True
+            supplier.save()
 
         return favorite
 
@@ -105,13 +106,16 @@ class FavoriteViewSet(ModelViewSet):
         product = instance.product
         supplier = instance.supplier
 
-        product.is_favorite = False
-        product.save()
+        if not Favorite.objects.filter(product=product).exclude(pk=instance.pk).exists():
+            product.is_favorite = False
+            product.save()
 
-        supplier.is_favorite = False
-        supplier.save()
+        if supplier and not Favorite.objects.filter(supplier=supplier).exclude(pk=instance.pk).exists():
+            supplier.is_favorite = False
+            supplier.save()
 
         super().perform_destroy(instance)
+
 
 class SuppliersByCategoryView(APIView):
     def get(self, request):
@@ -129,11 +133,7 @@ class SuppliersByCategoryView(APIView):
 
 class ProductsBySupplierView(APIView):
     def get(self, request, supplier_id):
-        products = Product.objects.filter(suppliers__id=supplier_id).annotate(
-            min_delivery_time=models.Min('supplierprice__delivery_time'),
-            min_price=models.Min('supplierprice__price')
-        )
-
+        products = Product.objects.filter(suppliers__id=supplier_id)
         serializer = ProductsBySupplierSerializer(products, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 

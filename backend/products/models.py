@@ -4,6 +4,7 @@ from django.utils.timezone import localtime, now
 from django.contrib.auth.models import User
 
 
+
 class Category(models.Model):
     name = models.CharField(max_length=255)
     parent = models.ForeignKey(
@@ -21,12 +22,16 @@ class Category(models.Model):
 
 class Supplier(models.Model):
     name = models.CharField(max_length=255)
-    logo = models.ImageField(upload_to='supplier_logos/')
+    logo = models.ImageField(upload_to='supplier_logos/', null=True, blank=True)
     rating = models.FloatField()
     is_favourite = models.BooleanField(default=False)
     city = models.CharField(max_length=255)
     categories = models.ManyToManyField(Category, related_name='suppliers')
     contact_number = models.CharField(max_length=15)
+    price_wholesale = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    price_retail = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    min_order_quantity = models.PositiveIntegerField(null=True, blank=True)
+    delivery_time = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -35,14 +40,15 @@ class Supplier(models.Model):
 class Product(models.Model):
     name = models.CharField(max_length=255)
     article = models.CharField(max_length=100)
-    price_wholesale = models.DecimalField(max_digits=10, decimal_places=2)
-    price_retail = models.DecimalField(max_digits=10, decimal_places=2)
-    min_order_quantity = models.PositiveIntegerField()
-    delivery_time = models.CharField(max_length=255)
     city = models.CharField(max_length=255)
     description = models.TextField()
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.CASCADE,
+        related_name='products'
+    )
     characteristics = models.JSONField()
-    photo = models.ImageField(upload_to='product_photos/')
+    photo = models.ImageField(upload_to='product_photos/', null=True, blank=True)
     suppliers = models.ManyToManyField(
         Supplier,
         through='SupplierPrice',

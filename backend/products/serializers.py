@@ -12,7 +12,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ['id', 'name', 'suppliers_count', 'children']
+        fields = "__all__"
 
     def get_children(self, obj):
         children = obj.children.all()
@@ -29,23 +29,20 @@ class SupplierSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Supplier
-        fields = ['id', 'name', 'logo', 'rating', 'is_favourite', 'city', 'categories', 'contact_number']
+        fields = "__all__"
 
 
 class SupplierPriceSerializer(serializers.ModelSerializer):
     class Meta:
         model = SupplierPrice
-        fields = ['supplier', 'product', 'price', 'delivery_time']
+        fields = "__all__"
 
 
 class ProductSerializer(serializers.ModelSerializer):
     suppliers = SupplierSerializer(many=True, read_only=True)
     class Meta:
         model = Product
-        fields = [
-            'id', 'name', 'article', 'price_retail', 'price_wholesale',
-            'min_order_quantity', 'delivery_time', 'city', 'description', 'photo', 'suppliers', 'is_favorite'
-        ]
+        fields = "__all__"
 
 
 class BannerSerializer(serializers.ModelSerializer):
@@ -121,11 +118,40 @@ class FavoriteSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
 
         if isinstance(instance, Favorite):
-            representation['product'] = ProductSerializer(instance.product).data
+            representation['product'] = ProductCompactSerializer(instance.product, context=self.context).data
             if instance.supplier:
-                representation['supplier'] = SupplierSerializer(instance.supplier).data
+                representation['supplier'] = SupplierCompactSerializer(instance.supplier, context=self.context).data
 
         return representation
+
+# for favorite
+class ProductCompactSerializer(serializers.ModelSerializer):
+    photo = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'article', 'photo']
+
+    def get_photo(self, obj):
+        request = self.context.get('request')
+        if obj.photo and request:
+            return request.build_absolute_uri(obj.photo.url)
+        return None
+
+# for favorite
+class SupplierCompactSerializer(serializers.ModelSerializer):
+    logo = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Supplier
+        fields = ['id', 'name', 'logo', 'rating', 'is_favourite', 'city', 'contact_number']
+
+    def get_logo(self, obj):
+        request = self.context.get('request')
+        if obj.logo and request:
+            return request.build_absolute_uri(obj.logo.url)
+        return None
+
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
@@ -169,7 +195,7 @@ class SupplierByCategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Supplier
-        fields = ['id', 'name', 'city', 'logo', 'product_count', 'min_delivery_time']
+        fields = "__all__"
 
     def get_logo(self, obj):
         request = self.context.get('request')
@@ -179,13 +205,11 @@ class SupplierByCategorySerializer(serializers.ModelSerializer):
 
 
 class ProductsBySupplierSerializer(serializers.ModelSerializer):
-    min_delivery_time = serializers.CharField()
-    min_price = serializers.DecimalField(max_digits=10, decimal_places=2)
     photo = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'article', 'photo', 'min_delivery_time', 'min_price']
+        fields = "__all__"
 
     def get_photo(self, obj):
         request = self.context.get('request')
