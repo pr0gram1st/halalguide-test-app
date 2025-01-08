@@ -130,7 +130,7 @@ class ProductCompactSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'article', 'photo']
+        fields = ['id', 'name', 'article', 'photo', 'is_favorite']
 
     def get_photo(self, obj):
         request = self.context.get('request')
@@ -144,7 +144,7 @@ class SupplierCompactSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Supplier
-        fields = ['id', 'name', 'logo', 'rating', 'is_favourite', 'city', 'contact_number']
+        fields = ['id', 'name', 'logo', 'rating', 'is_favourite', 'city', 'contact_number', 'is_favorite']
 
     def get_logo(self, obj):
         request = self.context.get('request')
