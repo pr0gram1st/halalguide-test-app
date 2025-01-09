@@ -206,13 +206,26 @@ class SupplierByCategorySerializer(serializers.ModelSerializer):
 
 class ProductsBySupplierSerializer(serializers.ModelSerializer):
     photo = serializers.SerializerMethodField()
+    price = serializers.SerializerMethodField()
+    delivery_time = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
-        fields = "__all__"
+        fields = ['id', 'name', 'photo', 'price', 'delivery_time']  # Include fields as needed
 
     def get_photo(self, obj):
         request = self.context.get('request')
         if obj.photo and request:
             return request.build_absolute_uri(obj.photo.url)
         return None
+
+    def get_price(self, obj):
+        supplier_id = self.context.get('supplier_id')
+        supplier_price = obj.supplierprice_set.filter(supplier_id=supplier_id).first()
+        return supplier_price.price if supplier_price else None
+
+    def get_delivery_time(self, obj):
+        supplier_id = self.context.get('supplier_id')
+        supplier_price = obj.supplierprice_set.filter(supplier_id=supplier_id).first()
+        return supplier_price.delivery_time if supplier_price else None
+

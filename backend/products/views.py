@@ -134,8 +134,13 @@ class SuppliersByCategoryView(APIView):
 class ProductsBySupplierView(APIView):
     def get(self, request, supplier_id):
         products = Product.objects.filter(suppliers__id=supplier_id)
-        serializer = ProductsBySupplierSerializer(products, many=True, context={'request': request})
+        serializer = ProductsBySupplierSerializer(
+            products,
+            many=True,
+            context={'request': request, 'supplier_id': supplier_id}
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 @api_view(['POST'])
