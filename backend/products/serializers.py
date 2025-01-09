@@ -144,7 +144,7 @@ class SupplierCompactSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Supplier
-        fields = ['id', 'name', 'logo', 'rating', 'is_favourite', 'city', 'contact_number', 'is_favorite']
+        fields = ['id', 'name', 'logo', 'rating', 'is_favourite', 'city', 'contact_number', 'is_favourite']
 
     def get_logo(self, obj):
         request = self.context.get('request')
