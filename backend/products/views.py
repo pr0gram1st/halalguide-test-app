@@ -175,21 +175,25 @@ def create_order(request):
 
     **Response Details:**
     - `201 Created`: Order was created successfully.
-    - `404 Not Found`: Either the product or the supplier was not found.
+    - `404 Not Found`: Either the product, supplier, or price information was not found.
     - `400 Bad Request`: If the input data is invalid.
 
     **Potential Errors:**
     - `Product not found`: If the `product_id` does not exist in the database.
     - `Supplier not found`: If the `supplier_id` does not exist in the database.
+    - `Price information not found`: If the supplier does not offer the specified product.
     """
 
     user = request.user
     if not user.is_authenticated:
-        return Response({'error': 'User not authenticated'})
+        return Response({'error': 'User not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
 
     product_id = request.data.get('product_id')
     supplier_id = request.data.get('supplier_id')
-    quantity = request.data.get('quantity', 1)
+    quantity = int(request.data.get('quantity', 1))
+
+    if quantity <= 0:
+        return Response({'error': 'Quantity must be greater than 0'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         product = Product.objects.get(id=product_id)
@@ -199,7 +203,13 @@ def create_order(request):
     except Supplier.DoesNotExist:
         return Response({'error': 'Supplier not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    total_price = product.price_retail * quantity
+    try:
+        supplier_price = SupplierPrice.objects.get(product=product, supplier=supplier)
+    except SupplierPrice.DoesNotExist:
+        return Response({'error': 'Price information not found for the supplier and product combination'},
+                        status=status.HTTP_404_NOT_FOUND)
+
+    total_price = supplier_price.price * quantity
 
     order = Order.objects.create(
         user=user,
