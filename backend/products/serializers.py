@@ -91,10 +91,23 @@ class FavoriteSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.id')
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())  # Expecting the product ID
     supplier = serializers.PrimaryKeyRelatedField(queryset=Supplier.objects.all(), required=False)
+    price = serializers.SerializerMethodField()
 
     class Meta:
         model = Favorite
-        fields = ['id', 'user', 'product', 'supplier']
+        fields = ['id', 'user', 'product', 'supplier', "price"]
+
+    def get_price(self, obj):
+        if obj.supplier and obj.product:
+            try:
+                supplier_price = SupplierPrice.objects.get(
+                    supplier=obj.supplier,
+                    product=obj.product
+                )
+                return supplier_price.price
+            except SupplierPrice.DoesNotExist:
+                return None
+        return None
 
     def validate(self, data):
         """
@@ -211,7 +224,7 @@ class ProductsBySupplierSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'photo', 'price', 'delivery_time']  # Include fields as needed
+        fields = ['id', 'name', 'photo', 'price', 'delivery_time', "is_favorite"]
 
     def get_photo(self, obj):
         request = self.context.get('request')

@@ -85,7 +85,7 @@ class FavoriteViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Favorite.objects.filter(user=self.request.user)
+        return Favorite.objects.filter(user=self.request.user).select_related('product', 'supplier')
 
     def perform_create(self, serializer):
         product = serializer.validated_data.get('product')
