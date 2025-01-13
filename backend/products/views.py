@@ -17,6 +17,9 @@ from django.utils.timezone import now
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from rest_framework import status
+from rest_framework.filters import SearchFilter
+from rest_framework.pagination import PageNumberPagination
+
 
 class ParentCategoryViewSet(ReadOnlyModelViewSet):
     queryset = Category.objects.filter(parent__isnull=True)
@@ -30,9 +33,17 @@ class SupplierViewSet(ModelViewSet):
     queryset = Supplier.objects.all()
     serializer_class = SupplierSerializer
 
+class ProductPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 class ProductViewSet(ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
+    filter_backends = [SearchFilter]
+    search_fields = ['name',]
+    pagination_class = ProductPagination
 
 class SupplierPriceViewSet(ModelViewSet):
     queryset = SupplierPrice.objects.all()
