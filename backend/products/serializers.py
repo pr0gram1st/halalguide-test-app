@@ -57,10 +57,38 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email']
 
 
+class OrderSupplierSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Supplier
+        fields = [
+            'id', 'name', 'price_wholesale', 'price_retail',
+            'min_order_quantity', 'delivery_time'
+        ]
+
+
+class OrderProductSerializer(serializers.ModelSerializer):
+    photo = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Product
+        fields = ['id', 'name', 'article', 'city', 'photo']
+
+    def get_photo(self, obj):
+        request = self.context.get('request')
+        if obj.photo and request:
+            return request.build_absolute_uri(obj.photo.url)
+        return None
+
+
+class OrderUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email']
+
 class OrderSerializer(serializers.ModelSerializer):
-    supplier_details = SupplierSerializer(read_only=True)
-    product = ProductSerializer(read_only=True)  # Use nested Product representation
-    user = UserSerializer(read_only=True)  # Use nested User representation
+    supplier_details = OrderSupplierSerializer(read_only=True)
+    product = OrderProductSerializer(read_only=True)
+    user = OrderUserSerializer(read_only=True)
     total_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
     class Meta:
@@ -70,7 +98,6 @@ class OrderSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         order = Order.objects.create(**validated_data)
         return order
-
 
 
 class CartItemSerializer(serializers.ModelSerializer):
