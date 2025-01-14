@@ -28,10 +28,6 @@ class Supplier(models.Model):
     city = models.CharField(max_length=255)
     categories = models.ManyToManyField(Category, related_name='suppliers')
     contact_number = models.CharField(max_length=15)
-    price_wholesale = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    price_retail = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    min_order_quantity = models.PositiveIntegerField(null=True, blank=True)
-    delivery_time = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -55,6 +51,10 @@ class Product(models.Model):
         related_name='products'
     )
     is_favorite = models.BooleanField(default=False)
+    price_wholesale = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    price_retail = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    min_order_quantity = models.PositiveIntegerField(null=True, blank=True)
+    delivery_time = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return self.name

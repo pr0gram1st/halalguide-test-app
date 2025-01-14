@@ -61,8 +61,7 @@ class OrderSupplierSerializer(serializers.ModelSerializer):
     class Meta:
         model = Supplier
         fields = [
-            'id', 'name', 'price_wholesale', 'price_retail',
-            'min_order_quantity', 'delivery_time'
+            'id', 'name', 'logo'
         ]
 
 
@@ -71,7 +70,8 @@ class OrderProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'article', 'city', 'photo']
+        fields = ['id', 'name', 'article', 'city', 'photo', 'price_wholesale', 'price_retail',
+            'min_order_quantity', 'delivery_time']
 
     def get_photo(self, obj):
         request = self.context.get('request')

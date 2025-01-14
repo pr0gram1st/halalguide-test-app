@@ -28,9 +28,7 @@ class CategoryAdmin(admin.ModelAdmin):
 @admin.register(Supplier)
 class SupplierAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'name', 'city', 'rating', 'is_favourite',
-        'price_wholesale', 'price_retail', 'min_order_quantity',
-        'delivery_time'
+        'id', 'name', 'city', 'rating', 'is_favourite'
     )
     search_fields = ('name', 'city')
     list_filter = ('city', 'rating', 'is_favourite')
