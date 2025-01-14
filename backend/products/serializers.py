@@ -168,7 +168,9 @@ class SupplierCompactSerializer(serializers.ModelSerializer):
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
-    orders = OrderSerializer(many=True)
+    orders = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Order.objects.all()
+    )
 
     class Meta:
         model = Application
@@ -179,12 +181,11 @@ class ApplicationSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
     def create(self, validated_data):
-        orders_data = validated_data.pop('orders')
+        orders = validated_data.pop('orders')
         application = Application.objects.create(**validated_data)
-        for order_data in orders_data:
-            order = Order.objects.create(**order_data)
-            application.orders.add(order)
+        application.orders.set(orders)
         return application
+
 
 
 class DeliverySerializer(serializers.ModelSerializer):
