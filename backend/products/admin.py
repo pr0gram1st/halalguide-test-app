@@ -41,7 +41,7 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ('city', 'is_favorite')
     fieldsets = (
         (None, {'fields': ('name', 'article')}),
-        ('Product Details', {'fields': ('city', 'description', 'characteristics', 'photo', 'category')}),
+        ('Product Details', {'fields': ('city', 'description', 'characteristics', 'photo', 'category', 'price_wholesale', 'price_retail', 'min_order_quantity', 'delivery_time',)}),
         ('Favorites', {'fields': ('is_favorite',)}),
     )
     inlines = [SupplierPriceInline]
