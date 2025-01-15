@@ -8,6 +8,8 @@ from rest_framework.views import APIView
 from django.db.models import Q, Count, Min
 from django.db import models
 
+from rest_framework.exceptions import NotFound, PermissionDenied
+
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -126,6 +128,19 @@ class FavoriteViewSet(ModelViewSet):
             supplier.save()
 
         super().perform_destroy(instance)
+
+    def destroy(self, request, *args, **kwargs):
+        product_id = kwargs.get('product_id')
+        if not product_id:
+            raise NotFound("Product ID is required.")
+
+        try:
+            favorite = Favorite.objects.get(user=request.user, product_id=product_id)
+        except Favorite.DoesNotExist:
+            raise NotFound("Favorite not found for the given product.")
+
+        self.perform_destroy(favorite)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SuppliersByCategoryView(APIView):

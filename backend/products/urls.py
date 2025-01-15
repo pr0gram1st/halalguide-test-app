@@ -25,4 +25,5 @@ urlpatterns = [
     path('suppliers/<int:supplier_id>/products/', ProductsBySupplierView.as_view(), name='products-by-supplier'),
     path('custom-orders/create/', create_order, name='create_order'),
     path('orders/', ListOrdersAPIView.as_view(), name='list-orders'),
+    path('favorites/product/<int:product_id>/', FavoriteViewSet.as_view({'delete': 'destroy'}), name='favorite-delete-by-product'),
 ]

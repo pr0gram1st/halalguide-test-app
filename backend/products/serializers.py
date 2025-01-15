@@ -99,6 +99,19 @@ class OrderSerializer(serializers.ModelSerializer):
         order = Order.objects.create(**validated_data)
         return order
 
+class ApplicationOrderSerializer(serializers.ModelSerializer):
+    supplier_details = OrderSupplierSerializer(read_only=True)
+    product = OrderProductSerializer(read_only=True)
+    total_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ['id', 'supplier_details', 'product', 'quantity', 'total_cost']
+
+    def create(self, validated_data):
+        order = Order.objects.create(**validated_data)
+        return order
+
 
 class CartItemSerializer(serializers.ModelSerializer):
     class Meta:
@@ -118,11 +131,12 @@ class FavoriteSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.id')
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())  # Expecting the product ID
     supplier = serializers.PrimaryKeyRelatedField(queryset=Supplier.objects.all(), required=False)
+    delivery_time = serializers.SerializerMethodField()
     price = serializers.SerializerMethodField()
 
     class Meta:
         model = Favorite
-        fields = ['id', 'user', 'product', 'supplier', "price"]
+        fields = ['id', 'user', 'product', 'supplier', "price", "delivery_time"]
 
     def get_price(self, obj):
         if obj.supplier and obj.product:
@@ -132,6 +146,18 @@ class FavoriteSerializer(serializers.ModelSerializer):
                     product=obj.product
                 )
                 return supplier_price.price
+            except SupplierPrice.DoesNotExist:
+                return None
+        return None
+
+    def get_delivery_time(self, obj):
+        if obj.supplier and obj.product:
+            try:
+                supplier_price = SupplierPrice.objects.get(
+                    supplier=obj.supplier,
+                    product=obj.product
+                )
+                return supplier_price.delivery_time
             except SupplierPrice.DoesNotExist:
                 return None
         return None
@@ -195,9 +221,7 @@ class SupplierCompactSerializer(serializers.ModelSerializer):
 
 
 class ApplicationSerializer(serializers.ModelSerializer):
-    orders = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=Order.objects.all()
-    )
+    orders = ApplicationOrderSerializer(many=True, read_only=True)
 
     class Meta:
         model = Application
@@ -252,7 +276,7 @@ class ProductsBySupplierSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'photo', 'price', 'delivery_time', "is_favorite"]
+        fields = ['id', 'name', 'article', 'photo', 'price', 'delivery_time', "is_favorite"]
 
     def get_photo(self, obj):
         request = self.context.get('request')
