@@ -231,6 +231,7 @@ class ApplicationSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at']
 
+    #here
     def create(self, validated_data):
         orders = validated_data.pop('orders')
         application = Application.objects.create(**validated_data)

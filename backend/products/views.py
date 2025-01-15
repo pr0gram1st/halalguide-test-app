@@ -100,6 +100,7 @@ class FavoriteViewSet(ModelViewSet):
     def get_queryset(self):
         return Favorite.objects.filter(user=self.request.user).select_related('product', 'supplier')
 
+    #here
     def perform_create(self, serializer):
         product = serializer.validated_data.get('product')
         supplier = serializer.validated_data.get('supplier', None)

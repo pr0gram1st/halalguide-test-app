@@ -50,6 +50,7 @@ class Product(models.Model):
         through='SupplierPrice',
         related_name='products'
     )
+    #here
     is_favorite = models.BooleanField(default=False)
     price_wholesale = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     price_retail = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
